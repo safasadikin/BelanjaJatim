@@ -15,6 +15,21 @@ from reportlab.lib.units import inch
 from reportlab.lib import colors
 
 # ───────────────────────────────────────────────
+#           COOKIE MANAGER – FITUR "INGAT SAYA"
+# ───────────────────────────────────────────────
+
+from streamlit_cookies_manager import EncryptedCookieManager
+
+# GANTI PASSWORD INI DENGAN STRING RAHASIA YANG KAMU BUAT SENDIRI (minimal 20-30 karakter, unik)
+cookies = EncryptedCookieManager(
+    prefix="belanja_jatim_",
+    password="rahasia_jatim_2026_rakha_safa_pratama_strong_key_987654321xyzabc"
+)
+
+if not cookies.ready():
+    st.stop()
+
+# ───────────────────────────────────────────────
 #           SISTEM LOGIN + REGISTRASI + LUPA PASSWORD
 # ───────────────────────────────────────────────
 
@@ -60,9 +75,19 @@ def show_auth_page():
 
     with tab_login:
         st.markdown("**Masuk ke aplikasi**")
-        username = st.text_input("Username", key="login_username_unique")
+
+        # ─── FITUR INGAT SAYA ───────────────────────────────
+        remembered_username = cookies.get("remember_username", "")
+
+        username = st.text_input(
+            "Username",
+            value=remembered_username,
+            key="login_username_unique"
+        )
         password = st.text_input("Password", type="password", key="login_password_unique")
         
+        remember_me = st.checkbox("Ingat saya di perangkat ini", value=bool(remembered_username))
+
         if st.button("Masuk", type="primary", use_container_width=True):
             users = load_users()
             if username in users:
@@ -70,6 +95,15 @@ def show_auth_page():
                 if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
+
+                    # Simpan / hapus cookie sesuai pilihan
+                    if remember_me:
+                        cookies["remember_username"] = username
+                    else:
+                        cookies.pop("remember_username", None)
+                    
+                    cookies.save()  # Penting! Simpan ke browser
+
                     nama = users[username].get("nama_lengkap", username)
                     st.success(f"**Login berhasil!** Selamat datang kembali, **{nama}** ({username}) 🎉")
                     st.balloons()
@@ -1199,7 +1233,6 @@ elif "History (BLUD)" in menu:
 # ───────────────────────────────────────────────
 #           DEBUG
 # ───────────────────────────────────────────────
-
 if st.sidebar.button("Clear Cache & Rerun"):
     st.cache_data.clear()
     st.rerun()

@@ -1,0 +1,6 @@
+﻿No,3,"TAMBAHKAN MENU IMPOR DATA REALISASI BLUD DARI SUMBER DATA TAB SD_REAL_BLUD, DENGAN MENAMBAHKAN TANGGAL IMPORNYA YG DI ISI SENDIRI. YANG DI IMPOR KOLOM YG BERWARNA KUNING",ANGGARAN,REALISASI,PROSENTASE,Tanggal Impor Data
+1,4.0,Buatkan dashboard untuk realisasi belanja blud,0,0,0.0,24/02/2026
+2,5.0,"Buatkan Dashboard gabungan realisasi belanja + realisasi belanja blud, dengan menggabungkan data impor terakhir ditabel real_belanja dan real_belanja_blud",0,0,0.0,24/02/2026
+3,6.0,buat ada dua upload/imporan itu yang non blud dan yang blud,0,0,0.0,24/02/2026
+4,,buat 3 dashboard yang mana satu itu utama alias gabungan daripada blud dan non blud kemudian dashboard kedua blud dan dashboard ketiga dashboard non blud,0,0,0.0,24/02/2026
+5,,untuk history juga buat dua yang satu buat blud dan satu buat yang non blud,0,0,0.0,24/02/2026
