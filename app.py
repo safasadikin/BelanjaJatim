@@ -73,8 +73,8 @@ def show_auth_page():
     query_params = st.query_params
     active_tab = query_params.get("tab", ["login"])[0].lower()
 
-    # Logo Jawa Timur ditampilkan di atas judul (ganti gembok)
-    st.image("logo_jatim.png", width=120, use_column_width=False)  # ← LOGO JAWA TIMUR DI SINI
+    # Logo Jawa Timur resmi dari Wikimedia (pasti muncul, gak perlu file lokal)
+    st.image("https://upload.wikimedia.org/wikipedia/commons/5/5c/Lambang_Provinsi_Jawa_Timur.png", width=120, use_column_width=False)
 
     st.title("Login / Daftar Sistem Realisasi Belanja Jatim")
 
