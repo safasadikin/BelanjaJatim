@@ -69,7 +69,7 @@ def save_users(users):
 def show_auth_page():
     st.set_page_config(page_title="Login / Daftar - Realisasi Belanja Jatim", layout="centered")
 
-    # Cek query param untuk menentukan tab mana yang dibuka (default: login)
+    # Cek query param untuk menentukan tab awal (default: login)
     query_params = st.query_params
     active_tab = query_params.get("tab", ["login"])[0].lower()
 
@@ -77,9 +77,13 @@ def show_auth_page():
 
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
-    # Jika baru saja registrasi berhasil → tampilkan pesan di tab Login
-    if "just_registered" in st.session_state:
-        with tab_login:
+    with tab_login:
+        # Tampilkan pesan logout jika ada (muncul sekali setelah logout)
+        if "logout_message" in st.session_state:
+            st.success(st.session_state.pop("logout_message"))
+
+        # Tampilkan pesan sukses registrasi jika baru saja daftar
+        if "just_registered" in st.session_state:
             username = st.session_state.pop("just_registered_username", "")
             nama = st.session_state.pop("just_registered_nama", "")
             msg = st.session_state.pop("just_registered_message", "")
@@ -89,7 +93,6 @@ def show_auth_page():
             st.markdown("Masukkan username dan password di bawah ini ↓")
             st.balloons()
 
-    with tab_login:
         st.markdown("**Masuk ke aplikasi**")
 
         remembered_username = cookies.get("remember_username", "")
@@ -135,8 +138,23 @@ def show_auth_page():
 
         with st.form(key="register_form"):
             new_username     = st.text_input("Username (unik)", key="reg_username_unique")
-            new_password     = st.text_input("Password", type="password", key="reg_password_unique")
-            confirm_password = st.text_input("Konfirmasi Password", type="password", key="reg_confirm_unique")
+            
+            # Password dengan placeholder
+            new_password     = st.text_input(
+                "Password",
+                type="password",
+                key="reg_password_unique",
+                placeholder="Password must be 6-8 characters"
+            )
+            
+            # Konfirmasi Password dengan placeholder yang sama
+            confirm_password = st.text_input(
+                "Konfirmasi Password",
+                type="password",
+                key="reg_confirm_unique",
+                placeholder="Password must be 6-8 characters"
+            )
+            
             nama_lengkap     = st.text_input("Nama Lengkap", key="reg_nama_unique")
             email            = st.text_input("Email", key="reg_email_unique")
             tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900, 1, 1), max_value=datetime.now(), key="reg_tgl_lahir_unique")
@@ -260,11 +278,21 @@ if not st.session_state["logged_in"]:
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 
 st.sidebar.markdown(f"**Pengguna aktif:** {st.session_state.get('current_user', 'User')} 👤")
+
+# Logout dengan pesan sukses
 if st.sidebar.button("Logout", type="secondary"):
+    # Simpan pesan logout
+    st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
+    
+    # Reset session state
     st.session_state["logged_in"] = False
     for key in list(st.session_state.keys()):
-        if key not in ["logged_in"]:
+        if key not in ["logged_in", "logout_message"]:
             del st.session_state[key]
+    
+    # Hapus query params agar tab default login
+    st.query_params.clear()
+    
     st.rerun()
 
 st.sidebar.markdown("---")
