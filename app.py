@@ -136,28 +136,31 @@ def show_auth_page():
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
+        # Pesan bantuan password di atas form
+        st.info("Password minimal 6 karakter", icon="ℹ️")
+
         with st.form(key="register_form"):
             new_username = st.text_input(
                 "Username (unik)",
                 key="reg_username_unique",
-                label_visibility="collapsed"  # Hilangkan "Press Enter to submit form"
+                label_visibility="collapsed"
             )
             
             new_password = st.text_input(
                 "Password",
                 type="password",
                 key="reg_password_unique",
-                placeholder="Password must be 6-8 characters",
                 label_visibility="collapsed"
             )
+            st.caption("Minimal 6 karakter")
             
             confirm_password = st.text_input(
                 "Konfirmasi Password",
                 type="password",
                 key="reg_confirm_unique",
-                placeholder="Password must be 6-8 characters",
                 label_visibility="collapsed"
             )
+            st.caption("Harus sama dengan password di atas")
             
             nama_lengkap = st.text_input(
                 "Nama Lengkap",
