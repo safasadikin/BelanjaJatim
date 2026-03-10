@@ -73,10 +73,7 @@ def show_auth_page():
     query_params = st.query_params
     active_tab = query_params.get("tab", ["login"])[0].lower()
 
-    # Logo Jawa Timur resmi dari Wikimedia (pasti muncul, gak perlu file lokal)
-    st.image("https://upload.wikimedia.org/wikipedia/commons/5/5c/Lambang_Provinsi_Jawa_Timur.png", width=120, use_column_width=False)
-
-    st.title("Login / Daftar Sistem Realisasi Belanja Jatim")
+    st.title("🔐 Login / Daftar Sistem Realisasi Belanja Jatim")
 
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
