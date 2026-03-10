@@ -73,7 +73,10 @@ def show_auth_page():
     query_params = st.query_params
     active_tab = query_params.get("tab", ["login"])[0].lower()
 
-    st.title("🔐 Login / Daftar Sistem Realisasi Belanja Jatim")
+    # Logo Jawa Timur ditampilkan di atas judul (ganti gembok)
+    st.image("logo_jatim.png", width=120, use_column_width=False)  # ← LOGO JAWA TIMUR DI SINI
+
+    st.title("Login / Daftar Sistem Realisasi Belanja Jatim")
 
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
