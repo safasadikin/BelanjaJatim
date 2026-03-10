@@ -78,11 +78,11 @@ def show_auth_page():
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
     with tab_login:
-        # Tampilkan pesan logout jika ada (muncul sekali setelah logout)
+        # Pesan setelah logout
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
 
-        # Tampilkan pesan sukses registrasi jika baru saja daftar
+        # Pesan setelah registrasi berhasil
         if "just_registered" in st.session_state:
             username = st.session_state.pop("just_registered_username", "")
             nama = st.session_state.pop("just_registered_nama", "")
@@ -137,28 +137,52 @@ def show_auth_page():
             st.error(st.session_state.pop("register_error"))
 
         with st.form(key="register_form"):
-            new_username     = st.text_input("Username (unik)", key="reg_username_unique")
+            new_username = st.text_input(
+                "Username (unik)",
+                key="reg_username_unique",
+                label_visibility="collapsed"  # Hilangkan "Press Enter to submit form"
+            )
             
-            # Password dengan placeholder
-            new_password     = st.text_input(
+            new_password = st.text_input(
                 "Password",
                 type="password",
                 key="reg_password_unique",
-                placeholder="Password must be 6-8 characters"
+                placeholder="Password must be 6-8 characters",
+                label_visibility="collapsed"
             )
             
-            # Konfirmasi Password dengan placeholder yang sama
             confirm_password = st.text_input(
                 "Konfirmasi Password",
                 type="password",
                 key="reg_confirm_unique",
-                placeholder="Password must be 6-8 characters"
+                placeholder="Password must be 6-8 characters",
+                label_visibility="collapsed"
             )
             
-            nama_lengkap     = st.text_input("Nama Lengkap", key="reg_nama_unique")
-            email            = st.text_input("Email", key="reg_email_unique")
-            tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900, 1, 1), max_value=datetime.now(), key="reg_tgl_lahir_unique")
-            no_hp            = st.text_input("Nomor HP / WA", key="reg_hp_unique")
+            nama_lengkap = st.text_input(
+                "Nama Lengkap",
+                key="reg_nama_unique",
+                label_visibility="collapsed"
+            )
+            
+            email = st.text_input(
+                "Email",
+                key="reg_email_unique",
+                label_visibility="collapsed"
+            )
+            
+            tgl_lahir = st.date_input(
+                "Tanggal Lahir",
+                min_value=datetime(1900, 1, 1),
+                max_value=datetime.now(),
+                key="reg_tgl_lahir_unique"
+            )
+            
+            no_hp = st.text_input(
+                "Nomor HP / WA",
+                key="reg_hp_unique",
+                label_visibility="collapsed"
+            )
 
             submit_button = st.form_submit_button("Daftar Akun", type="primary", use_container_width=True)
 
@@ -196,7 +220,6 @@ def show_auth_page():
                         }
                         save_users(users)
 
-                        # Simpan info untuk ditampilkan di tab login setelah redirect
                         st.session_state["just_registered"] = True
                         st.session_state["just_registered_username"] = new_username
                         st.session_state["just_registered_nama"] = nama_lengkap
@@ -206,7 +229,6 @@ def show_auth_page():
                             "Silakan login menggunakan username dan password di tab Login."
                         )
 
-                        # Otomatis pindah ke tab Login
                         st.query_params["tab"] = "login"
                         st.rerun()
 
@@ -222,10 +244,28 @@ def show_auth_page():
             st.error(msg)
 
         with st.form(key="reset_form"):
-            reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
-            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
-            new_password_reset     = st.text_input("Password Baru", type="password", key="reset_password_unique")
-            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
+            reset_username = st.text_input(
+                "Username yang ingin direset",
+                key="reset_username_unique",
+                label_visibility="collapsed"
+            )
+            reset_no_hp = st.text_input(
+                "Nomor HP terdaftar (untuk verifikasi)",
+                key="reset_hp_unique",
+                label_visibility="collapsed"
+            )
+            new_password_reset = st.text_input(
+                "Password Baru",
+                type="password",
+                key="reset_password_unique",
+                label_visibility="collapsed"
+            )
+            confirm_password_reset = st.text_input(
+                "Konfirmasi Password Baru",
+                type="password",
+                key="reset_confirm_unique",
+                label_visibility="collapsed"
+            )
 
             reset_button = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
 
@@ -279,20 +319,13 @@ st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 
 st.sidebar.markdown(f"**Pengguna aktif:** {st.session_state.get('current_user', 'User')} 👤")
 
-# Logout dengan pesan sukses
 if st.sidebar.button("Logout", type="secondary"):
-    # Simpan pesan logout
     st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
-    
-    # Reset session state
     st.session_state["logged_in"] = False
     for key in list(st.session_state.keys()):
         if key not in ["logged_in", "logout_message"]:
             del st.session_state[key]
-    
-    # Hapus query params agar tab default login
     st.query_params.clear()
-    
     st.rerun()
 
 st.sidebar.markdown("---")
