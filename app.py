@@ -136,56 +136,25 @@ def show_auth_page():
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
-        # Pesan bantuan password di atas form
-        st.info("Password minimal 6 karakter", icon="ℹ️")
-
         with st.form(key="register_form"):
-            new_username = st.text_input(
-                "Username (unik)",
-                key="reg_username_unique",
-                label_visibility="collapsed"
-            )
+            new_username     = st.text_input("Username (unik)", key="reg_username_unique")
             
-            new_password = st.text_input(
+            new_password     = st.text_input(
                 "Password",
                 type="password",
-                key="reg_password_unique",
-                label_visibility="collapsed"
+                key="reg_password_unique"
             )
-            st.caption("Minimal 6 karakter")
             
             confirm_password = st.text_input(
                 "Konfirmasi Password",
                 type="password",
-                key="reg_confirm_unique",
-                label_visibility="collapsed"
-            )
-            st.caption("Harus sama dengan password di atas")
-            
-            nama_lengkap = st.text_input(
-                "Nama Lengkap",
-                key="reg_nama_unique",
-                label_visibility="collapsed"
+                key="reg_confirm_unique"
             )
             
-            email = st.text_input(
-                "Email",
-                key="reg_email_unique",
-                label_visibility="collapsed"
-            )
-            
-            tgl_lahir = st.date_input(
-                "Tanggal Lahir",
-                min_value=datetime(1900, 1, 1),
-                max_value=datetime.now(),
-                key="reg_tgl_lahir_unique"
-            )
-            
-            no_hp = st.text_input(
-                "Nomor HP / WA",
-                key="reg_hp_unique",
-                label_visibility="collapsed"
-            )
+            nama_lengkap     = st.text_input("Nama Lengkap", key="reg_nama_unique")
+            email            = st.text_input("Email", key="reg_email_unique")
+            tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900, 1, 1), max_value=datetime.now(), key="reg_tgl_lahir_unique")
+            no_hp            = st.text_input("Nomor HP / WA", key="reg_hp_unique")
 
             submit_button = st.form_submit_button("Daftar Akun", type="primary", use_container_width=True)
 
@@ -247,28 +216,10 @@ def show_auth_page():
             st.error(msg)
 
         with st.form(key="reset_form"):
-            reset_username = st.text_input(
-                "Username yang ingin direset",
-                key="reset_username_unique",
-                label_visibility="collapsed"
-            )
-            reset_no_hp = st.text_input(
-                "Nomor HP terdaftar (untuk verifikasi)",
-                key="reset_hp_unique",
-                label_visibility="collapsed"
-            )
-            new_password_reset = st.text_input(
-                "Password Baru",
-                type="password",
-                key="reset_password_unique",
-                label_visibility="collapsed"
-            )
-            confirm_password_reset = st.text_input(
-                "Konfirmasi Password Baru",
-                type="password",
-                key="reset_confirm_unique",
-                label_visibility="collapsed"
-            )
+            reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
+            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
+            new_password_reset     = st.text_input("Password Baru", type="password", key="reset_password_unique")
+            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
 
             reset_button = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
 
