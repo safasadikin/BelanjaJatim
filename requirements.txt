@@ -1,6 +1,7 @@
 streamlit
 pandas
-plotly
 numpy
+plotly
 openpyxl
 bcrypt
+reportlab
