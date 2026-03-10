@@ -68,15 +68,30 @@ def save_users(users):
 
 def show_auth_page():
     st.set_page_config(page_title="Login / Daftar - Realisasi Belanja Jatim", layout="centered")
-    
+
+    # Cek query param untuk menentukan tab mana yang dibuka (default: login)
+    query_params = st.query_params
+    active_tab = query_params.get("tab", ["login"])[0].lower()
+
     st.title("🔐 Login / Daftar Sistem Realisasi Belanja Jatim")
-    
+
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
+
+    # Jika baru saja registrasi berhasil → tampilkan pesan di tab Login
+    if "just_registered" in st.session_state:
+        with tab_login:
+            username = st.session_state.pop("just_registered_username", "")
+            nama = st.session_state.pop("just_registered_nama", "")
+            msg = st.session_state.pop("just_registered_message", "")
+            
+            st.success(msg)
+            st.info(f"**Username Anda:** `{username}`\nGunakan password yang baru saja Anda buat untuk masuk sekarang.")
+            st.markdown("Masukkan username dan password di bawah ini ↓")
+            st.balloons()
 
     with tab_login:
         st.markdown("**Masuk ke aplikasi**")
 
-        # ─── FITUR INGAT SAYA ───────────────────────────────
         remembered_username = cookies.get("remember_username", "")
 
         username = st.text_input(
@@ -96,13 +111,12 @@ def show_auth_page():
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
 
-                    # Simpan / hapus cookie sesuai pilihan
                     if remember_me:
                         cookies["remember_username"] = username
                     else:
                         cookies.pop("remember_username", None)
                     
-                    cookies.save()  # Penting! Simpan ke browser
+                    cookies.save()
 
                     nama = users[username].get("nama_lengkap", username)
                     st.success(f"**Login berhasil!** Selamat datang kembali, **{nama}** ({username}) 🎉")
@@ -116,13 +130,8 @@ def show_auth_page():
     with tab_register:
         st.markdown("**Buat akun baru (data lengkap)**")
         
-        if st.session_state.get("register_success"):
-            msg = st.session_state.pop("register_success")
-            st.success(msg)
-            st.balloons()
         if st.session_state.get("register_error"):
-            msg = st.session_state.pop("register_error")
-            st.error(msg)
+            st.error(st.session_state.pop("register_error"))
 
         with st.form(key="register_form"):
             new_username     = st.text_input("Username (unik)", key="reg_username_unique")
@@ -168,7 +177,19 @@ def show_auth_page():
                             "no_hp": no_hp.strip()
                         }
                         save_users(users)
-                        st.session_state["register_success"] = f"**Registrasi berhasil!** Akun '{new_username}' ({nama_lengkap}) telah dibuat. Silakan login 🎉"
+
+                        # Simpan info untuk ditampilkan di tab login setelah redirect
+                        st.session_state["just_registered"] = True
+                        st.session_state["just_registered_username"] = new_username
+                        st.session_state["just_registered_nama"] = nama_lengkap
+                        st.session_state["just_registered_message"] = (
+                            f"**Registrasi berhasil!**\n"
+                            f"Akun **{new_username}** ({nama_lengkap}) telah dibuat.\n\n"
+                            "Silakan login menggunakan username dan password di tab Login."
+                        )
+
+                        # Otomatis pindah ke tab Login
+                        st.query_params["tab"] = "login"
                         st.rerun()
 
     with tab_reset:
@@ -597,7 +618,6 @@ if "Upload Data" in menu:
             if nm and "ANGGARAN" in df.columns:
                 df = df[df[nm].notna() & (df[nm].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
 
-            # RESET No jika sudah ada (saat upload)
             if "No" in df.columns:
                 df = df.drop(columns=["No"])
             df.insert(0, "No", range(1, len(df) + 1))
@@ -687,7 +707,6 @@ elif "Dashboard (Non-BLUD)" in menu:
                 mask |= df_view[c].astype(str).str.contains(q, case=False, na=False)
             df_view = df_view[mask]
 
-    # RESET NOMOR URUT (anti error duplikat)
     if "No" in df_view.columns:
         df_view = df_view.drop(columns=["No"])
     df_view = df_view.reset_index(drop=True)
@@ -817,7 +836,6 @@ elif "Dashboard (BLUD)" in menu:
                 mask |= df_view[c].astype(str).str.contains(q, case=False, na=False)
             df_view = df_view[mask]
 
-    # RESET NOMOR URUT (anti error duplikat)
     if "No" in df_view.columns:
         df_view = df_view.drop(columns=["No"])
     df_view = df_view.reset_index(drop=True)
@@ -974,7 +992,6 @@ elif "Dashboard Gabungan" in menu:
 
         df_view = df_view.sort_values(by=sort_col, ascending=(sort_order == "Ascending"))
 
-        # RESET NOMOR URUT (anti error)
         if "No" in df_view.columns:
             df_view = df_view.drop(columns=["No"])
         df_view = df_view.reset_index(drop=True)
@@ -1057,7 +1074,6 @@ elif "Dashboard Gabungan" in menu:
                 df_view = df_view[mask]
         df_view = df_view.sort_values(by="REALISASI", ascending=False)
 
-        # RESET NOMOR URUT
         if "No" in df_view.columns:
             df_view = df_view.drop(columns=["No"])
         df_view = df_view.reset_index(drop=True)
@@ -1081,7 +1097,6 @@ elif "Dashboard Gabungan" in menu:
                 df_view = df_view[mask]
         df_view = df_view.sort_values(by="REALISASI", ascending=False)
 
-        # RESET NOMOR URUT
         if "No" in df_view.columns:
             df_view = df_view.drop(columns=["No"])
         df_view = df_view.reset_index(drop=True)
