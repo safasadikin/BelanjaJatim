@@ -343,13 +343,52 @@ def show_auth_page():
                         }
                         save_users(users)
 
+                        # ── NOTIFIKASI REGISTRASI BERHASIL ──
+                        import time
+                        st.markdown(f"""
+                            <style>
+                            @keyframes fadeInReg {{
+                                0%   {{ opacity: 0; transform: translateY(-15px); }}
+                                100% {{ opacity: 1; transform: translateY(0); }}
+                            }}
+                            .reg-success-box {{
+                                background: rgba(0, 180, 100, 0.85);
+                                border-radius: 12px;
+                                padding: 24px;
+                                text-align: center;
+                                animation: fadeInReg 0.6s ease forwards;
+                                margin: 10px 0;
+                            }}
+                            .reg-success-box h3 {{
+                                color: white !important;
+                                font-size: 22px !important;
+                                font-weight: 900 !important;
+                                text-shadow: none !important;
+                                margin-bottom: 8px;
+                            }}
+                            .reg-success-box p {{
+                                color: #e0ffe0 !important;
+                                font-size: 15px !important;
+                                text-shadow: none !important;
+                            }}
+                            </style>
+                            <div class="reg-success-box">
+                                <h3>✅ Registrasi Berhasil!</h3>
+                                <p>Akun <b>{new_username}</b> ({nama_lengkap}) telah dibuat.<br>
+                                Silakan menuju halaman <b>Login</b> untuk masuk ke sistem.</p>
+                            </div>
+                        """, unsafe_allow_html=True)
+
+                        bar = st.progress(0, text="Mengalihkan ke halaman Login...")
+                        for i in range(1, 101):
+                            time.sleep(0.02)
+                            bar.progress(i, text=f"Mengalihkan ke halaman Login... {i}%")
+
                         st.session_state["just_registered"] = True
                         st.session_state["just_registered_username"] = new_username
                         st.session_state["just_registered_nama"] = nama_lengkap
                         st.session_state["just_registered_message"] = (
-                            f"**Registrasi berhasil!**\n"
-                            f"Akun **{new_username}** ({nama_lengkap}) telah dibuat.\n\n"
-                            "Silakan login menggunakan username dan password di tab Login."
+                            f"**Registrasi berhasil!** Akun **{new_username}** ({nama_lengkap}) telah dibuat. Silakan login."
                         )
 
                         st.query_params["tab"] = "login"
