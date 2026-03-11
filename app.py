@@ -68,7 +68,7 @@ def save_users(users):
         json.dump(users, f, indent=2, ensure_ascii=False)
 
 def show_auth_page():
-    # set_page_config sudah dipanggil di luar fungsi ini
+    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
 
     # ── BACKGROUND HALAMAN LOGIN ──
     import base64
@@ -99,10 +99,7 @@ def show_auth_page():
             .block-container span,
             .block-container div {{
                 font-weight: 700 !important;
-                text-shadow: 1px 1px 4px rgba(255,255,255,0.9), 
-                             -1px -1px 4px rgba(255,255,255,0.9),
-                             1px -1px 4px rgba(255,255,255,0.9),
-                             -1px 1px 4px rgba(255,255,255,0.9) !important;
+                text-shadow: 1px 1px 3px rgba(255,255,255,0.95) !important;
                 color: #1a1a1a !important;
             }}
             /* Input box lebih jelas */
@@ -331,9 +328,7 @@ def show_auth_page():
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
-# Set page config SEKALI di sini sebelum apapun dirender
 if not st.session_state["logged_in"]:
-    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
     show_auth_page()
     st.stop()
 
@@ -342,6 +337,7 @@ if not st.session_state["logged_in"]:
 # ───────────────────────────────────────────────
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
+
 
 # ── LOGO DI SIDEBAR ──
 try:
