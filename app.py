@@ -90,8 +90,47 @@ def show_auth_page():
                 position: relative;
                 z-index: 1;
             }}
-            /* Semua teks lebih tebal dan jelas */
-            .block-container h1,
+
+            /* ── ANIMASI FADE IN ── */
+            @keyframes fadeInDown {{
+                0%   {{ opacity: 0; transform: translateY(-30px); }}
+                100% {{ opacity: 1; transform: translateY(0); }}
+            }}
+            @keyframes fadeInUp {{
+                0%   {{ opacity: 0; transform: translateY(30px); }}
+                100% {{ opacity: 1; transform: translateY(0); }}
+            }}
+            @keyframes fadeIn {{
+                0%   {{ opacity: 0; }}
+                100% {{ opacity: 1; }}
+            }}
+
+            /* Logo fade in dari atas */
+            [data-testid="stImage"] img {{
+                animation: fadeInDown 1s ease forwards;
+                margin-bottom: -40px !important;
+                display: block;
+            }}
+
+            /* Judul fade in */
+            .block-container h1 {{
+                animation: fadeInDown 1.2s ease forwards;
+                font-weight: 900 !important;
+                color: white !important;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9) !important;
+            }}
+
+            /* Tab fade in */
+            .stTabs {{
+                animation: fadeIn 1.5s ease forwards;
+            }}
+
+            /* Form fade in dari bawah */
+            .block-container > div > div > div > div {{
+                animation: fadeInUp 1.4s ease forwards;
+            }}
+
+            /* Teks umum */
             .block-container h2,
             .block-container h3 {{
                 font-weight: 900 !important;
@@ -105,6 +144,7 @@ def show_auth_page():
                 color: white !important;
                 text-shadow: 1px 1px 3px rgba(0,0,0,0.9) !important;
             }}
+
             /* Center konten login di tengah layar */
             .block-container {{
                 background: transparent !important;
