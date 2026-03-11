@@ -8,6 +8,7 @@ import json
 import bcrypt
 from pathlib import Path
 from datetime import datetime
+from PIL import Image
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
 from reportlab.lib.styles import getSampleStyleSheet
@@ -68,6 +69,15 @@ def save_users(users):
 
 def show_auth_page():
     st.set_page_config(page_title="Login / Daftar - Realisasi Belanja Jatim", layout="centered")
+
+    # ── LOGO PROVINSI JAWA TIMUR ──
+    try:
+        logo = Image.open("Logo Provinsi Jawa Timur.png")
+        col1, col2, col3 = st.columns([1, 1, 1])
+        with col2:
+            st.image(logo, width=120)
+    except FileNotFoundError:
+        st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
     # Cek query param untuk menentukan tab awal (default: login)
     query_params = st.query_params
@@ -598,8 +608,7 @@ if "Upload Data" in menu:
                 "KREDIT MURNI TA":     "ANGGARAN",
                 "KREDIT MURNI TA 2026":"ANGGARAN",
                 "KREDIT MURNI TA2026": "ANGGARAN",
-                "KREDIT (MURNI)":      "ANGGARAN",
-                "ANGGARAN":            "ANGGARAN",
+                "KREDIT MURNI":        "ANGGARAN",
 
                 "JUMLAH":              "REALISASI",
                 "REALISASI RILL":      "REALISASI",
