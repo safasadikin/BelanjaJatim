@@ -344,7 +344,9 @@ st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 # ── LOGO DI SIDEBAR ──
 try:
     logo_sidebar = Image.open("Logo Provinsi Jawa Timur.png")
-    st.sidebar.image(logo_sidebar, width=100)
+    st.sidebar.markdown("<div style='margin-top: -60px; margin-bottom: -20px;'>", unsafe_allow_html=True)
+    st.sidebar.image(logo_sidebar, width=140)
+    st.sidebar.markdown("</div>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
 
