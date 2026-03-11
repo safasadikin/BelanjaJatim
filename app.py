@@ -73,9 +73,11 @@ def show_auth_page():
     # ── LOGO PROVINSI JAWA TIMUR ──
     try:
         logo = Image.open("Logo Provinsi Jawa Timur.png")
-        col1, col2, col3 = st.columns([1, 1, 1])
+        st.markdown("<br>", unsafe_allow_html=True)
+        col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
-            st.image(logo, width=200)
+            st.image(logo, use_container_width=True)
+        st.markdown("<br>", unsafe_allow_html=True)
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
