@@ -344,9 +344,18 @@ st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 # ── LOGO DI SIDEBAR ──
 try:
     logo_sidebar = Image.open("Logo Provinsi Jawa Timur.png")
-    st.sidebar.markdown("<div style='margin-top: -60px; margin-bottom: -20px;'>", unsafe_allow_html=True)
-    st.sidebar.image(logo_sidebar, width=140)
-    st.sidebar.markdown("</div>", unsafe_allow_html=True)
+    st.sidebar.markdown("""
+        <style>
+        [data-testid="stSidebar"] > div:first-child {
+            padding-top: 0px !important;
+        }
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            margin-top: -80px !important;
+            margin-left: -10px !important;
+        }
+        </style>
+    """, unsafe_allow_html=True)
+    st.sidebar.image(logo_sidebar, width=150)
 except FileNotFoundError:
     pass
 
