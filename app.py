@@ -99,8 +99,16 @@ def show_auth_page():
             .block-container span,
             .block-container div {{
                 font-weight: 700 !important;
-                text-shadow: 1px 1px 3px rgba(255,255,255,0.95) !important;
+                text-shadow: none !important;
                 color: #1a1a1a !important;
+            }}
+            /* Kotak putih di belakang konten login */
+            .block-container {{
+                background: rgba(255, 255, 255, 0.88) !important;
+                border-radius: 16px !important;
+                padding: 2rem 2rem !important;
+                backdrop-filter: blur(6px) !important;
+                box-shadow: 0 8px 32px rgba(0,0,0,0.2) !important;
             }}
             /* Input box lebih jelas */
             .stTextInput input {{
