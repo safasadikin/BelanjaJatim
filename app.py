@@ -341,6 +341,13 @@ if not st.session_state["logged_in"]:
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 
+# ── LOGO DI SIDEBAR ──
+try:
+    logo_sidebar = Image.open("Logo Provinsi Jawa Timur.png")
+    st.sidebar.image(logo_sidebar, width=100)
+except FileNotFoundError:
+    pass
+
 st.sidebar.markdown(f"**Pengguna aktif:** {st.session_state.get('current_user', 'User')} 👤")
 
 if st.sidebar.button("Logout", type="secondary"):
