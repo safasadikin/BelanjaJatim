@@ -351,7 +351,7 @@ try:
         }
         [data-testid="stSidebar"] [data-testid="stImage"] {
             margin-top: -80px !important;
-            margin-left: -10px !important;
+            margin-left: -25px !important;
         }
         </style>
     """, unsafe_allow_html=True)
