@@ -70,6 +70,37 @@ def save_users(users):
 def show_auth_page():
     st.set_page_config(page_title="Login / Daftar - Realisasi Belanja Jatim", layout="centered")
 
+    # ── BACKGROUND HALAMAN LOGIN ──
+    import base64
+    try:
+        with open("highland-east-java-tengger-massif-volcano-wallpaper-preview.jpg", "rb") as f:
+            bg_data = base64.b64encode(f.read()).decode()
+        st.markdown(f"""
+            <style>
+            .stApp {{
+                background-image: url("data:image/jpg;base64,{bg_data}");
+                background-size: cover;
+                background-position: center;
+                background-repeat: no-repeat;
+                background-attachment: fixed;
+            }}
+            .stApp::before {{
+                content: "";
+                position: fixed;
+                top: 0; left: 0;
+                width: 100%; height: 100%;
+                background: rgba(255, 255, 255, 0.75);
+                z-index: 0;
+            }}
+            .block-container {{
+                position: relative;
+                z-index: 1;
+            }}
+            </style>
+        """, unsafe_allow_html=True)
+    except FileNotFoundError:
+        pass
+
     # ── LOGO PROVINSI JAWA TIMUR ──
     try:
         logo = Image.open("Logo Provinsi Jawa Timur.png")
