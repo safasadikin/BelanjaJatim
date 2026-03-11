@@ -73,7 +73,7 @@ def show_auth_page():
     # ── BACKGROUND HALAMAN LOGIN ──
     import base64
     try:
-        with open("highland-east-java-tengger-massif-volcano-wallpaper-preview.jpg", "rb") as f:
+        with open("thumb-1920-719571.jpg", "rb") as f:
             bg_data = base64.b64encode(f.read()).decode()
         st.markdown(f"""
             <style>
