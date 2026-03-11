@@ -79,7 +79,7 @@ def show_auth_page():
         st.markdown("""
             <style>
             [data-testid="stImage"] img {
-                margin-bottom: -80px !important;
+                margin-bottom: -40px !important;
                 display: block;
             }
             </style>
