@@ -108,13 +108,8 @@ def show_auth_page():
             /* Center konten login di tengah layar */
             .block-container {{
                 background: transparent !important;
-                padding-top: 0 !important;
+                padding-top: 5rem !important;
                 margin-top: 0 !important;
-            }}
-            .stApp > div {{
-                display: flex !important;
-                align-items: center !important;
-                min-height: 100vh !important;
             }}
             /* Input box lebih jelas */
             .stTextInput input {{
