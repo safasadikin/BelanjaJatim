@@ -108,7 +108,7 @@ def show_auth_page():
             /* Center konten login di tengah layar */
             .block-container {{
                 background: transparent !important;
-                padding-top: 8rem !important;
+                padding-top: 10rem !important;
                 margin-top: 0 !important;
             }}
             /* Input box lebih jelas */
