@@ -105,10 +105,16 @@ def show_auth_page():
                 color: white !important;
                 text-shadow: 1px 1px 3px rgba(0,0,0,0.9) !important;
             }}
-            /* Kotak putih di belakang konten login */
+            /* Center konten login di tengah layar */
             .block-container {{
                 background: transparent !important;
-                padding: 2rem 2rem !important;
+                padding-top: 0 !important;
+                margin-top: 0 !important;
+            }}
+            .stApp > div {{
+                display: flex !important;
+                align-items: center !important;
+                min-height: 100vh !important;
             }}
             /* Input box lebih jelas */
             .stTextInput input {{
