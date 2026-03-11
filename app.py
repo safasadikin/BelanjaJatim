@@ -75,7 +75,7 @@ def show_auth_page():
         logo = Image.open("Logo Provinsi Jawa Timur.png")
         col1, col2, col3 = st.columns([1, 1, 1])
         with col2:
-            st.image(logo, width=120)
+            st.image(logo, width=200)
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
