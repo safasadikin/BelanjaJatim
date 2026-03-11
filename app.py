@@ -83,11 +83,39 @@ def show_auth_page():
                 background-position: center;
                 background-repeat: no-repeat;
                 background-attachment: fixed;
-                filter: saturate(1.3) contrast(1.1);
+                image-rendering: high-quality;
+                -webkit-font-smoothing: antialiased;
             }}
             .block-container {{
                 position: relative;
                 z-index: 1;
+            }}
+            /* Semua teks lebih tebal dan jelas */
+            .block-container h1,
+            .block-container h2,
+            .block-container h3,
+            .block-container p,
+            .block-container label,
+            .block-container span,
+            .block-container div {{
+                font-weight: 700 !important;
+                text-shadow: 1px 1px 4px rgba(255,255,255,0.9), 
+                             -1px -1px 4px rgba(255,255,255,0.9),
+                             1px -1px 4px rgba(255,255,255,0.9),
+                             -1px 1px 4px rgba(255,255,255,0.9) !important;
+                color: #1a1a1a !important;
+            }}
+            /* Input box lebih jelas */
+            .stTextInput input {{
+                background: rgba(255,255,255,0.92) !important;
+                font-weight: 600 !important;
+                color: #111 !important;
+                border: 1.5px solid #ccc !important;
+            }}
+            /* Tab text */
+            .stTabs [data-baseweb="tab"] {{
+                font-weight: 700 !important;
+                text-shadow: 1px 1px 3px rgba(255,255,255,0.8) !important;
             }}
             </style>
         """, unsafe_allow_html=True)
