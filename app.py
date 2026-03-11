@@ -355,7 +355,7 @@ try:
         <div style="display: flex; align-items: center; gap: 12px; margin-top: -75px; margin-bottom: 8px;">
             <img src="data:image/png;base64,{logo_b64}" width="85" style="min-width:85px; image-rendering: high-quality;">
             <div style="font-size: 15px; font-weight: 900; color: #1a1a1a; line-height: 1.7;">
-                BPKAD<br>Provinsi<br>Jawa Timur
+                BPKAD Provinsi<br>Jawa Timur
             </div>
         </div>
     """, unsafe_allow_html=True)
