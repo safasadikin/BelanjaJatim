@@ -68,7 +68,7 @@ def save_users(users):
         json.dump(users, f, indent=2, ensure_ascii=False)
 
 def show_auth_page():
-    st.set_page_config(page_title="Login / Daftar - Realisasi Belanja Jatim", layout="centered")
+    # set_page_config sudah dipanggil di luar fungsi ini
 
     # ── BACKGROUND HALAMAN LOGIN ──
     import base64
@@ -331,7 +331,9 @@ def show_auth_page():
 if "logged_in" not in st.session_state:
     st.session_state["logged_in"] = False
 
+# Set page config SEKALI di sini sebelum apapun dirender
 if not st.session_state["logged_in"]:
+    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
     show_auth_page()
     st.stop()
 
