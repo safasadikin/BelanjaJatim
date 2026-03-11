@@ -4,7 +4,6 @@ import plotly.express as px
 import io
 import re
 import os
-import json
 import bcrypt
 from pathlib import Path
 from datetime import datetime
@@ -14,6 +13,7 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.lib.units import inch
 from reportlab.lib import colors
+from supabase import create_client, Client
 
 # ───────────────────────────────────────────────
 #           COOKIE MANAGER – FITUR "INGAT SAYA"
@@ -21,7 +21,6 @@ from reportlab.lib import colors
 
 from streamlit_cookies_manager import EncryptedCookieManager
 
-# GANTI PASSWORD INI DENGAN STRING RAHASIA YANG KAMU BUAT SENDIRI (minimal 20-30 karakter, unik)
 cookies = EncryptedCookieManager(
     prefix="belanja_jatim_",
     password="rahasia_jatim_2026_rakha_safa_pratama_strong_key_987654321xyzabc"
@@ -31,41 +30,59 @@ if not cookies.ready():
     st.stop()
 
 # ───────────────────────────────────────────────
+#           SUPABASE CLIENT
+# ───────────────────────────────────────────────
+
+SUPABASE_URL = st.secrets["SUPABASE_URL"]
+SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+
+# ───────────────────────────────────────────────
 #           SISTEM LOGIN + REGISTRASI + LUPA PASSWORD
 # ───────────────────────────────────────────────
 
-USERS_FILE = "users.json"
-
 def load_users():
-    if os.path.exists(USERS_FILE):
-        with open(USERS_FILE, "r", encoding="utf-8") as f:
-            try:
-                return json.load(f)
-            except json.JSONDecodeError:
-                pass
-    
-    default_users = {
-        "admin": {
-            "password": bcrypt.hashpw("jatim2026".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
-            "nama_lengkap": "Administrator Sistem",
-            "email": "admin@jatimprov.go.id",
-            "tgl_lahir": "1990-01-01",
-            "no_hp": "08123456789"
-        },
-        "rakha": {
-            "password": bcrypt.hashpw("safa123".encode('utf-8'), bcrypt.gensalt()).decode('utf-8'),
-            "nama_lengkap": "Rakha Safa Pratama",
-            "email": "rakha@example.com",
-            "tgl_lahir": "2000-05-15",
-            "no_hp": "081234567890"
-        }
-    }
-    save_users(default_users)
-    return default_users
+    try:
+        res = supabase.table("users").select("*").execute()
+        users = {}
+        for row in res.data:
+            users[row["username"]] = {
+                "password":    row["password"],
+                "nama_lengkap": row.get("nama_lengkap", ""),
+                "email":       row.get("email", ""),
+                "tgl_lahir":   row.get("tgl_lahir", ""),
+                "no_hp":       row.get("no_hp", ""),
+            }
+        return users
+    except Exception as e:
+        st.error(f"Gagal load users: {e}")
+        return {}
 
 def save_users(users):
-    with open(USERS_FILE, "w", encoding="utf-8") as f:
-        json.dump(users, f, indent=2, ensure_ascii=False)
+    # Tidak dipakai langsung, gunakan upsert per user
+    pass
+
+def save_user(username, data):
+    try:
+        supabase.table("users").upsert({
+            "username":    username,
+            "password":    data["password"],
+            "nama_lengkap": data.get("nama_lengkap", ""),
+            "email":       data.get("email", ""),
+            "tgl_lahir":   data.get("tgl_lahir", ""),
+            "no_hp":       data.get("no_hp", ""),
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"Gagal simpan user: {e}")
+        return False
+
+def delete_user(username):
+    try:
+        supabase.table("users").delete().eq("username", username).execute()
+        return True
+    except:
+        return False
 
 def show_auth_page():
     st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
@@ -330,14 +347,14 @@ def show_auth_page():
                         st.rerun()
                     else:
                         hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                        users[new_username] = {
+                        new_user_data = {
                             "password": hashed,
                             "nama_lengkap": nama_lengkap.strip(),
                             "email": email.strip(),
                             "tgl_lahir": str(tgl_lahir),
                             "no_hp": no_hp.strip()
                         }
-                        save_users(users)
+                        save_user(new_username, new_user_data)
 
                         # ── NOTIFIKASI REGISTRASI BERHASIL ──
                         import time
@@ -433,7 +450,7 @@ def show_auth_page():
                     else:
                         hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                         users[reset_username]["password"] = hashed
-                        save_users(users)
+                        save_user(reset_username, users[reset_username])
                         st.session_state["reset_success"] = f"**Password berhasil direset!** Untuk akun '{reset_username}'. Silakan login 🎉"
                         st.rerun()
 
