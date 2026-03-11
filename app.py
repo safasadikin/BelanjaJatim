@@ -238,8 +238,78 @@ def show_auth_page():
                     cookies.save()
 
                     nama = users[username].get("nama_lengkap", username)
-                    st.success(f"**Login berhasil!** Selamat datang kembali, **{nama}** ({username}) 🎉")
-                    st.balloons()
+
+                    # ── LOADING SCREEN ──
+                    try:
+                        import base64 as b64
+                        with open("Logo Provinsi Jawa Timur.png", "rb") as f:
+                            logo_loading = b64.b64encode(f.read()).decode()
+                        logo_html = f'<img src="data:image/png;base64,{logo_loading}" width="120" style="animation: spin 1s ease-in-out; margin-bottom: 20px;">'
+                    except:
+                        logo_html = "🏛️"
+
+                    loading_placeholder = st.empty()
+                    loading_placeholder.markdown(f"""
+                        <style>
+                        @keyframes spin {{
+                            0%   {{ transform: rotate(0deg) scale(0.5); opacity: 0; }}
+                            50%  {{ transform: rotate(180deg) scale(1.1); opacity: 1; }}
+                            100% {{ transform: rotate(360deg) scale(1); opacity: 1; }}
+                        }}
+                        @keyframes fillBar {{
+                            0%   {{ width: 0%; }}
+                            100% {{ width: 100%; }}
+                        }}
+                        .loading-screen {{
+                            position: fixed;
+                            top: 0; left: 0;
+                            width: 100vw; height: 100vh;
+                            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            z-index: 9999;
+                        }}
+                        .loading-title {{
+                            color: white;
+                            font-size: 22px;
+                            font-weight: 800;
+                            margin-bottom: 8px;
+                            text-shadow: 1px 1px 6px rgba(0,0,0,0.5);
+                        }}
+                        .loading-sub {{
+                            color: #a0d8ef;
+                            font-size: 15px;
+                            margin-bottom: 30px;
+                        }}
+                        .progress-bar-bg {{
+                            width: 300px;
+                            height: 8px;
+                            background: rgba(255,255,255,0.2);
+                            border-radius: 10px;
+                            overflow: hidden;
+                        }}
+                        .progress-bar-fill {{
+                            height: 100%;
+                            background: linear-gradient(90deg, #00c6ff, #0072ff);
+                            border-radius: 10px;
+                            animation: fillBar 2s ease forwards;
+                        }}
+                        </style>
+                        <div class="loading-screen">
+                            {logo_html}
+                            <div class="loading-title">BPKAD Provinsi Jawa Timur</div>
+                            <div class="loading-sub">Selamat datang, <b>{nama}</b> 👋</div>
+                            <div class="progress-bar-bg">
+                                <div class="progress-bar-fill"></div>
+                            </div>
+                        </div>
+                    """, unsafe_allow_html=True)
+
+                    import time
+                    time.sleep(2)
+                    loading_placeholder.empty()
                     st.rerun()
                 else:
                     st.error("**Password salah.** Coba lagi ya.")
