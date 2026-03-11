@@ -207,7 +207,6 @@ def show_auth_page():
             st.success(msg)
             st.info(f"**Username Anda:** `{username}`\nGunakan password yang baru saja Anda buat untuk masuk sekarang.")
             st.markdown("Masukkan username dan password di bawah ini ↓")
-            st.balloons()
 
         st.markdown("**Masuk ke aplikasi**")
 
@@ -400,7 +399,6 @@ def show_auth_page():
         if st.session_state.get("reset_success"):
             msg = st.session_state.pop("reset_success")
             st.success(msg)
-            st.balloons()
         if st.session_state.get("reset_error"):
             msg = st.session_state.pop("reset_error")
             st.error(msg)
