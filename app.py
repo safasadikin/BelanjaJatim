@@ -73,11 +73,17 @@ def show_auth_page():
     # ── LOGO PROVINSI JAWA TIMUR ──
     try:
         logo = Image.open("Logo Provinsi Jawa Timur.png")
-        st.markdown("<div style='margin-top: 30px; margin-bottom: -60px;'>", unsafe_allow_html=True)
         col1, col2, col3 = st.columns([1, 2, 1])
         with col2:
             st.image(logo, use_container_width=True)
-        st.markdown("</div>", unsafe_allow_html=True)
+        st.markdown("""
+            <style>
+            [data-testid="stImage"] img {
+                margin-bottom: -80px !important;
+                display: block;
+            }
+            </style>
+        """, unsafe_allow_html=True)
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
