@@ -355,7 +355,11 @@ try:
         }
         </style>
     """, unsafe_allow_html=True)
-    st.sidebar.image(logo_sidebar, width=150)
+    col_logo, col_text = st.sidebar.columns([1, 2])
+    with col_logo:
+        st.image(logo_sidebar, width=180)
+    with col_text:
+        st.markdown("<div style='padding-top: 10px; font-size: 13px; font-weight: 800; color: #1a1a1a; line-height: 1.4;'>BPKAD<br>Provinsi<br>Jawa Timur</div>", unsafe_allow_html=True)
 except FileNotFoundError:
     pass
 
