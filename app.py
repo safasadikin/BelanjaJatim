@@ -198,15 +198,12 @@ def show_auth_page():
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
 
-        # Pesan setelah registrasi berhasil
+        # Bersihkan session registrasi tanpa menampilkan pesan
         if "just_registered" in st.session_state:
-            username = st.session_state.pop("just_registered_username", "")
-            nama = st.session_state.pop("just_registered_nama", "")
-            msg = st.session_state.pop("just_registered_message", "")
-            
-            st.success(msg)
-            st.info(f"**Username Anda:** `{username}`\nGunakan password yang baru saja Anda buat untuk masuk sekarang.")
-            st.markdown("Masukkan username dan password di bawah ini ↓")
+            st.session_state.pop("just_registered", None)
+            st.session_state.pop("just_registered_username", None)
+            st.session_state.pop("just_registered_nama", None)
+            st.session_state.pop("just_registered_message", None)
 
         st.markdown("**Masuk ke aplikasi**")
 
