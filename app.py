@@ -514,21 +514,24 @@ def get_file_info(filepath):
     modified_time = modified_dt.strftime("%d/%m/%Y %H:%M:%S")
     size_kb = round(stat.st_size / 1024, 1)
     name  = p.stem
+
     # Format: non-blud_DD-MM-YYYY_TAYYYY_YYYYMMDD_HHMMSS  atau  blud_...
-    # Coba berbagai variasi prefix
     m = re.match(
-        r"^(blud|non-blud|non_blud|nonblud)_"   # prefix
-        r"(\d{2}-\d{2}-\d{4})_"                  # tanggal data
-        r"ta(\d{4})_"                             # tahun anggaran
-        r"(\d{8})_(\d{6})$",                      # timestamp upload
+        r"^(blud|non-blud|non_blud|nonblud)_"
+        r"(\d{2}-\d{2}-\d{4})_"
+        r"ta(\d{4})_"
+        r"(\d{8})_(\d{6})$",
         name.lower()
     )
     if m:
         tanggal_data   = m.group(2).replace("-", "/")
         tahun_anggaran = m.group(3)
+        ts_raw = m.group(4) + m.group(5)
         try:
-            upload_time = datetime.strptime(m.group(4) + m.group(5), "%Y%m%d%H%M%S").strftime("%d/%m/%Y %H:%M:%S")
-        except:
+            upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S")
+            upload_time = upload_dt.strftime("%d/%m/%Y %H:%M:%S")
+        except ValueError:
+            # Fallback ke modified_time jika timestamp tidak valid
             upload_time = modified_time
         return {
             "tanggal_data":   tanggal_data,
@@ -537,7 +540,8 @@ def get_file_info(filepath):
             "modified_time":  modified_time,
             "size_kb":        size_kb,
         }
-    # Fallback: baca dari nama file apa adanya
+
+    # Fallback: tidak bisa parse nama file
     return {
         "tanggal_data":   "–",
         "tahun_anggaran": "–",
@@ -1172,11 +1176,38 @@ elif "History (Non-BLUD)" in menu:
         st.info("Belum ada history upload Non-BLUD."); st.stop()
 
     st.subheader("📋 Daftar File History")
-    summary_rows = []
-    for f in files:
-        info = get_file_info(f)
-        summary_rows.append({"Nama File": f.name, "Tanggal Data": info["tanggal_data"], "Tahun Anggaran": info["tahun_anggaran"], "Waktu Upload": info["upload_time"], "Ukuran (KB)": info["size_kb"]})
-    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+
+    # ── Render tabel history sebagai HTML agar waktu upload tampil lengkap ──
+    rows_html = ""
+    for i, f in enumerate(files):
+        info     = get_file_info(f)
+        bg       = "#ffffff" if i % 2 == 0 else "#f8fafc"
+        fname_short = f.name[:55] + "…" if len(f.name) > 55 else f.name
+        rows_html += f"""
+        <tr style="background:{bg};">
+            <td style="padding:10px 14px;font-size:12px;color:#0d1b2e;font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{f.name}">{fname_short}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tanggal_data']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#1d4ed8;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:right;">{info['size_kb']} KB</td>
+        </tr>"""
+
+    st.markdown(f"""
+    <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#1e3a5f;">
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
+                </tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
@@ -1185,11 +1216,27 @@ elif "History (Non-BLUD)" in menu:
     info          = get_file_info(selected_path)
     df_hist       = load_history_file(selected_path)
 
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Tanggal Data",    info["tanggal_data"])
-    c2.metric("Tahun Anggaran",  info["tahun_anggaran"])
-    c3.metric("Waktu Upload",    info["upload_time"])
-    c4.metric("Ukuran File",     f"{info['size_kb']} KB")
+    # ── Info card detail ──
+    st.markdown(f"""
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #2563eb;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #16a34a;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #d97706;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
+            <div style="font-size:15px;font-weight:700;color:#1d4ed8;">{info['upload_time']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #7c3aed;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.subheader("Preview Data History")
     st.dataframe(df_hist, use_container_width=True, hide_index=True)
@@ -1227,11 +1274,37 @@ elif "History (BLUD)" in menu:
         st.info("Belum ada history upload BLUD."); st.stop()
 
     st.subheader("📋 Daftar File History")
-    summary_rows = []
-    for f in files:
-        info = get_file_info(f)
-        summary_rows.append({"Nama File": f.name, "Tanggal Data": info["tanggal_data"], "Tahun Anggaran": info["tahun_anggaran"], "Waktu Upload": info["upload_time"], "Ukuran (KB)": info["size_kb"]})
-    st.dataframe(pd.DataFrame(summary_rows), use_container_width=True, hide_index=True)
+
+    rows_html = ""
+    for i, f in enumerate(files):
+        info     = get_file_info(f)
+        bg       = "#ffffff" if i % 2 == 0 else "#f8fafc"
+        fname_short = f.name[:55] + "…" if len(f.name) > 55 else f.name
+        rows_html += f"""
+        <tr style="background:{bg};">
+            <td style="padding:10px 14px;font-size:12px;color:#0d1b2e;font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{f.name}">{fname_short}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tanggal_data']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#16a34a;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
+            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:right;">{info['size_kb']} KB</td>
+        </tr>"""
+
+    st.markdown(f"""
+    <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
+        <table style="width:100%;border-collapse:collapse;">
+            <thead>
+                <tr style="background:#1e3a5f;">
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
+                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
+                </tr>
+            </thead>
+            <tbody>{rows_html}</tbody>
+        </table>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
@@ -1240,11 +1313,27 @@ elif "History (BLUD)" in menu:
     info          = get_file_info(selected_path)
     df_hist       = load_history_file(selected_path)
 
-    c1,c2,c3,c4 = st.columns(4)
-    c1.metric("Tanggal Data",   info["tanggal_data"])
-    c2.metric("Tahun Anggaran", info["tahun_anggaran"])
-    c3.metric("Waktu Upload",   info["upload_time"])
-    c4.metric("Ukuran File",    f"{info['size_kb']} KB")
+    # ── Info card detail ──
+    st.markdown(f"""
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #2563eb;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #16a34a;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #d97706;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
+            <div style="font-size:15px;font-weight:700;color:#16a34a;">{info['upload_time']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #7c3aed;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
+            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
     st.subheader("Preview Data History")
     st.dataframe(df_hist, use_container_width=True, hide_index=True)
