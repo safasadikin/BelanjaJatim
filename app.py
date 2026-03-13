@@ -870,20 +870,21 @@ logo_html = ""
 try:
     with open("Logo Provinsi Jawa Timur.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
-    logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="32" style="border-radius:8px;flex-shrink:0;">'
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="56" style="flex-shrink:0;object-fit:contain;">'
 except FileNotFoundError:
-    logo_html = '<div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📊</div>'
+    logo_html = '<div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">📊</div>'
 
 st.sidebar.markdown(f"""
-<div style="padding:18px 16px 14px;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+<div style="padding:20px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:12px;margin-bottom:8px;">
     {logo_html}
     <div>
-        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.92);line-height:1.3;">BPKAD Jatim</div>
-        <div style="font-size:10px;color:rgba(255,255,255,0.38);margin-top:1px;">Realisasi Belanja</div>
+        <div style="font-size:14px;font-weight:700;color:rgba(255,255,255,0.95);line-height:1.3;">BPKAD</div>
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.80);">Provinsi Jawa Timur</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.38);margin-top:2px;">Realisasi Belanja</div>
     </div>
 </div>
 
-<div style="padding:8px 16px 4px;">
+<div style="padding:10px 16px 4px;">
     <div style="font-size:9px;font-weight:600;letter-spacing:0.1em;color:rgba(255,255,255,0.28);text-transform:uppercase;margin-bottom:6px;">Tipe Data</div>
 </div>
 """, unsafe_allow_html=True)
@@ -1385,31 +1386,31 @@ if "Upload Data" in menu:
 
     # ── HISTORY TERBARU (selalu tampil di bawah) ──
     if history_files:
-        rows_html = ""
-        for f in history_files[:5]:
-            info     = get_file_info(f)
-            fname    = f.name
-            size_str = f"{info['size_kb']} KB"
-            tgl_str  = info.get("tanggal_data", "–")
-            rows_html += f"""
-            <div class="history-row">
-                <div class="history-file-icon">📗</div>
-                <div style="flex:1;min-width:0;">
-                    <div class="history-file-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
-                    <div class="history-file-meta">{tgl_str} · {size_str}</div>
-                </div>
-                <div class="history-tag">Tersimpan</div>
+        st.markdown("""
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-top:16px;">
+            <div style="padding:14px 20px;border-bottom:0.5px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
+                <span style="font-size:14px;font-weight:600;color:#0d1b2e;">🕒 Upload Terbaru</span>
+                <span style="font-size:11px;color:#2563eb;">Lihat semua di menu History →</span>
             </div>
-            """
-        st.markdown(f"""
-        <div class="pro-card" style="margin-top:8px;">
-            <div class="pro-card-header">
-                <span class="pro-card-title">🕒 Upload Terbaru</span>
-                <span style="font-size:11px;color:#2563eb;cursor:pointer;">Lihat semua di menu History →</span>
-            </div>
-            {rows_html}
         </div>
         """, unsafe_allow_html=True)
+        for hf in history_files[:5]:
+            info     = get_file_info(hf)
+            fname    = hf.name
+            size_str = f"{info['size_kb']} KB"
+            tgl_str  = info.get("tanggal_data", "–")
+            is_last  = (hf == history_files[:5][-1])
+            border   = "none" if is_last else "0.5px solid #f1f5f9"
+            st.markdown(f"""
+            <div style="background:white;border-left:0.5px solid #e2e8f0;border-right:0.5px solid #e2e8f0;{'border-bottom:0.5px solid #e2e8f0;border-radius:0 0 12px 12px;' if is_last else ''}padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:{border};">
+                <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📗</div>
+                <div style="flex:1;min-width:0;">
+                    <div style="color:#0d1b2e;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;">{tgl_str} · {size_str}</div>
+                </div>
+                <div style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#16a34a;border:0.5px solid #bbf7d0;flex-shrink:0;">Tersimpan</div>
+            </div>
+            """, unsafe_allow_html=True)
 
 # ───────────────────────────────────────────────
 #           DASHBOARD NON-BLUD
