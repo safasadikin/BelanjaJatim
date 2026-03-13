@@ -525,21 +525,17 @@ def get_file_info(filepath):
     size_kb = round(p.stat().st_size / 1024, 1)
     name    = p.stem
 
-    # ── Baca waktu upload dari metadata di dalam file CSV ──
+    # ── 1. Coba baca metadata #UPLOAD_TIME dari dalam file (file baru) ──
     upload_time = None
     try:
         with open(filepath, encoding="utf-8-sig") as f:
             first_line = f.readline().strip()
         if first_line.startswith("#UPLOAD_TIME="):
-            upload_time = first_line.split("=", 1)[1]  # "DD/MM/YYYY HH:MM:SS"
+            upload_time = first_line.split("=", 1)[1]
     except Exception:
         pass
 
-    # Fallback ke st_mtime jika tidak ada metadata (file lama)
-    if not upload_time:
-        upload_time = datetime.fromtimestamp(p.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
-
-    # ── Parse tanggal data & tahun dari nama file ──
+    # ── 2. Fallback: parse timestamp dari nama file (lebih akurat dari st_mtime) ──
     m = re.match(
         r"^(blud|non-blud|non_blud|nonblud)_"
         r"(\d{2}-\d{2}-\d{4})_"
@@ -549,6 +545,19 @@ def get_file_info(filepath):
     )
     tanggal_data   = m.group(2).replace("-", "/") if m else "–"
     tahun_anggaran = m.group(3)                   if m else "–"
+
+    if not upload_time and m:
+        # Ambil dari nama file: group(4)=YYYYMMDD, group(5)=HHMMSS
+        ts_raw = m.group(4) + m.group(5)   # e.g. "20260313_142205" → "20260313142205"
+        try:
+            upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S")
+            upload_time = upload_dt.strftime("%d/%m/%Y %H:%M:%S")
+        except ValueError:
+            pass
+
+    # ── 3. Last resort: st_mtime ──
+    if not upload_time:
+        upload_time = datetime.fromtimestamp(p.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
 
     return {
         "tanggal_data":   tanggal_data,
@@ -806,24 +815,89 @@ if "Upload Data" in menu:
             st.session_state["tanggal_impor"] = tanggal_impor
 
             excel = pd.ExcelFile(uploaded)
-            default_sheet    = "SD REAL_BLUD" if tipe_upload == "BLUD" else "LAP REALBELANJA"
-            sheet_names_norm = [str(s).upper().strip() for s in excel.sheet_names]
-            idx   = sheet_names_norm.index(default_sheet) if default_sheet in sheet_names_norm else 0
+            sheet_names_upper = [str(s).upper().strip() for s in excel.sheet_names]
+
+            # ── Pilih sheet default sesuai tipe ──
+            if tipe_upload == "BLUD":
+                preferred = ["SD REAL_BLUD", "SD_REAL_BLUD", "SDREAL_BLUD", "REAL BLUD", "BLUD"]
+            else:
+                preferred = ["TABLE REAL_BELANJA", "TABLE REAL BELANJA", "SD_REAL", "SD REAL", "REAL_BELANJA"]
+
+            idx = 0
+            for p_name in preferred:
+                if p_name in sheet_names_upper:
+                    idx = sheet_names_upper.index(p_name); break
+
             sheet = st.selectbox("Pilih Sheet", excel.sheet_names, index=idx)
 
-            skip = 1 if tipe_upload == "BLUD" else 3
+            # ── Baca sheet: deteksi header otomatis ──
+            raw = pd.read_excel(excel, sheet_name=sheet, header=None)
+
             if tipe_upload == "BLUD":
-                df = pd.read_excel(excel, sheet_name=sheet, skiprows=skip, header=None)
-                df = df.drop(index=[0, 1, 2], errors="ignore").reset_index(drop=True)
-                if df.shape[1] >= 13:
-                    df.columns = ["NO","KODE SKPD","EMPTY","SKPD","ANGGARAN","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","REALISASI","PROSENTASE","SISA KREDIT","PERSEN SISA"]
-                    df = df.drop(columns=["NO","EMPTY"], errors="ignore")
+                # Struktur: baris 0-1 = judul kosong, baris 2 = header, baris 3 = nomor urut kolom → skip
+                # Kolom: NO | KODE SKPD | (merge) | SKPD | KREDIT(Murni) | SP2D GAJI | SP2D LS | RINCIAN GU/TU | KOREKSI | JUMLAH | % | SISA KREDIT | %
+                df = pd.read_excel(excel, sheet_name=sheet, header=2, skiprows=[3])
+                # Bersihkan nama kolom
+                cols_clean = []
+                seen = {}
+                for c in df.columns:
+                    c2 = str(c).strip().upper().replace("\n", " ")
+                    if c2 in seen:
+                        seen[c2] += 1; c2 = f"{c2}_{seen[c2]}"
+                    else:
+                        seen[c2] = 0
+                    cols_clean.append(c2)
+                df.columns = cols_clean
+
+                # Map ke nama standar
+                col_map = {
+                    "NO": "NO", "KODE SKPD": "KODE SKPD", "UNNAMED: 2": "EMPTY",
+                    "SKPD": "NAMA SKPD",
+                    "KREDIT  ( MURNI)": "ANGGARAN", "KREDIT ( MURNI)": "ANGGARAN",
+                    "KREDIT\n( MURNI)": "ANGGARAN",
+                    "KREDIT MURNI": "ANGGARAN", "KREDIT (MURNI)": "ANGGARAN",
+                    "SP2D GAJI": "SP2D GAJI", "SP2D LS": "SP2D LS",
+                    "RINCIAN PENGGUNAAN SP2D GU/TU": "RINCIAN GU/TU",
+                    "RINCIAN GU/TU": "RINCIAN GU/TU", "KOREKSI": "KOREKSI",
+                    "JUMLAH": "REALISASI",
+                    "%": "PROSENTASE", "%_1": "PERSEN SISA", "%.1": "PERSEN SISA",
+                    "SISA KREDIT": "SISA KREDIT",
+                }
+                df = df.rename(columns=col_map)
+                df = df.drop(columns=[c for c in ["NO","EMPTY"] if c in df.columns], errors="ignore")
+
             else:
-                df = pd.read_excel(excel, sheet_name=sheet, skiprows=skip, header=0)
+                # Non-BLUD: sheet Table Real_Belanja sudah bersih, header baris 1 (index 0)
+                # Kolom: No | Kode SKPD | Nama SKPD | Anggaran | Realisasi | Prosentase | Tanggal impor Data
+                # Cari baris header
+                header_row = 0
+                for i in range(min(5, len(raw))):
+                    row_vals = [str(v).strip().upper() for v in raw.iloc[i] if str(v).strip() not in ("NAN","")]
+                    if any(k in row_vals for k in ["NO","KODE SKPD","ANGGARAN","NAMA SKPD"]):
+                        header_row = i; break
+
+                df = pd.read_excel(excel, sheet_name=sheet, header=header_row)
+                cols_clean = []
+                seen = {}
+                for c in df.columns:
+                    c2 = str(c).strip().upper().replace("\n"," ")
+                    if c2 in seen:
+                        seen[c2] += 1; c2 = f"{c2}_{seen[c2]}"
+                    else:
+                        seen[c2] = 0
+                    cols_clean.append(c2)
+                df.columns = cols_clean
+
+                col_map_non = {
+                    "NO": "NO", "KODE SKPD": "KODE SKPD",
+                    "NAMA SKPD": "NAMA SKPD",
+                    "ANGGARAN": "ANGGARAN", "REALISASI": "REALISASI",
+                    "PROSENTASE": "PROSENTASE",
+                    "TANGGAL IMPOR DATA": "Tanggal Impor Data",
+                }
+                df = df.rename(columns=col_map_non)
 
             df = normalize_headers(df)
-            rename_dict = {"KREDIT MURNI":"ANGGARAN","KREDIT MURNI TA":"ANGGARAN","KREDIT MURNI TA 2026":"ANGGARAN","KREDIT MURNI TA2026":"ANGGARAN","JUMLAH":"REALISASI","REALISASI RILL":"REALISASI","REALISASI":"REALISASI","%":"PROSENTASE","% BELANJA":"PROSENTASE","PROSENTASE":"PROSENTASE","NAMA SKPD":"NAMA SKPD","SKPD":"SKPD","KODE SKPD":"KODE SKPD","SP2D GAJI":"SP2D GAJI","SP2D LS":"SP2D LS","RINCIAN GU/TU":"RINCIAN GU/TU","KOREKSI":"KOREKSI","SISA KREDIT":"SISA KREDIT","PERSEN SISA":"PERSEN SISA"}
-            df = df.rename(columns=rename_dict)
             df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
             df = compute_pct(df)
 
@@ -1269,8 +1343,19 @@ elif "History (Non-BLUD)" in menu:
     st.subheader("Preview Data History")
     st.dataframe(df_hist, use_container_width=True, hide_index=True)
 
-    st.subheader("📤 Export")
-    col_csv, col_pdf, col_del = st.columns(3)
+    # ── Banner info recovery ──
+    st.markdown("""
+    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">💡</span>
+        <div>
+            <div style="font-size:13px;font-weight:600;color:#1e40af;">Fitur Pemulihan Data</div>
+            <div style="font-size:12px;color:#3b82f6;margin-top:2px;">Gunakan <b>"Pulihkan ke Sesi Aktif"</b> untuk memuat ulang data ini ke Dashboard — berguna saat data aktif hilang atau sesi habis.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.subheader("📤 Export & Aksi")
+    col_csv, col_pdf = st.columns(2)
     with col_csv:
         csv_hist = df_hist.to_csv(index=False).encode("utf-8-sig")
         st.download_button("⬇️ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
@@ -1285,6 +1370,21 @@ elif "History (Non-BLUD)" in menu:
         if not str(ta_pdf).isdigit(): ta_pdf = int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist = generate_pdf_report(dfh, info["tanggal_data"], total_ang_h, total_real_h, total_pct_h, int(ta_pdf), "non_blud")
         st.download_button("📄 Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
+
+    col_recover, col_del = st.columns(2)
+    with col_recover:
+        if st.button("📂 Pulihkan ke Sesi Aktif", use_container_width=True, key="recover_non_blud",
+                     help="Muat data ini ke sesi aktif — data akan muncul di Dashboard Non-BLUD"):
+            df_recover = load_history_file(selected_path)
+            df_recover = normalize_headers(df_recover)
+            df_recover = normalize_numeric(df_recover, ["ANGGARAN","REALISASI","PROSENTASE"])
+            df_recover = compute_pct(df_recover)
+            st.session_state["df_non_blud"]        = df_recover
+            st.session_state["tanggal_impor"]      = info["tanggal_data"]
+            st.session_state["tahun_anggaran"]     = int(info["tahun_anggaran"]) if str(info["tahun_anggaran"]).isdigit() else 2026
+            st.session_state["_recovered_from"]    = selected
+            st.success(f"✅ Data **{selected}** berhasil dipulihkan ke sesi aktif! Silakan buka menu Dashboard Non-BLUD.")
+            st.balloons()
     with col_del:
         if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_non_final"):
             os.remove(selected_path)
@@ -1379,8 +1479,19 @@ elif "History (BLUD)" in menu:
     st.subheader("Preview Data History")
     st.dataframe(df_hist, use_container_width=True, hide_index=True)
 
-    st.subheader("📤 Export")
-    col_csv, col_pdf, col_del = st.columns(3)
+    # ── Banner info recovery ──
+    st.markdown("""
+    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:20px;">💡</span>
+        <div>
+            <div style="font-size:13px;font-weight:600;color:#15803d;">Fitur Pemulihan Data</div>
+            <div style="font-size:12px;color:#16a34a;margin-top:2px;">Gunakan <b>"Pulihkan ke Sesi Aktif"</b> untuk memuat ulang data ini ke Dashboard — berguna saat data aktif hilang atau sesi habis.</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    st.subheader("📤 Export & Aksi")
+    col_csv, col_pdf = st.columns(2)
     with col_csv:
         csv_hist = df_hist.to_csv(index=False).encode("utf-8-sig")
         st.download_button("⬇️ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
@@ -1395,6 +1506,21 @@ elif "History (BLUD)" in menu:
         if not str(ta_pdf).isdigit(): ta_pdf = int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist = generate_pdf_report(dfh, info["tanggal_data"], total_ang_h, total_real_h, total_pct_h, int(ta_pdf), "blud")
         st.download_button("📄 Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
+
+    col_recover, col_del = st.columns(2)
+    with col_recover:
+        if st.button("📂 Pulihkan ke Sesi Aktif", use_container_width=True, key="recover_blud",
+                     help="Muat data ini ke sesi aktif — data akan muncul di Dashboard BLUD"):
+            df_recover = load_history_file(selected_path)
+            df_recover = normalize_headers(df_recover)
+            df_recover = normalize_numeric(df_recover, ["ANGGARAN","REALISASI","SISA KREDIT","PROSENTASE"])
+            df_recover = compute_pct(df_recover)
+            st.session_state["df_blud"]            = df_recover
+            st.session_state["tanggal_impor"]      = info["tanggal_data"]
+            st.session_state["tahun_anggaran"]     = int(info["tahun_anggaran"]) if str(info["tahun_anggaran"]).isdigit() else 2026
+            st.session_state["_recovered_from"]    = selected
+            st.success(f"✅ Data **{selected}** berhasil dipulihkan ke sesi aktif! Silakan buka menu Dashboard BLUD.")
+            st.balloons()
     with col_del:
         if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
             os.remove(selected_path)
