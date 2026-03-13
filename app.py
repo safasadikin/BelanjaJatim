@@ -702,27 +702,29 @@ if "Upload Data" in menu:
     <div class="page-subtitle-pro">Import file Excel untuk memperbarui data realisasi {tipe_upload} Jawa Timur</div>
     """, unsafe_allow_html=True)
 
-    # ── INFO BANNER (pengganti area putih kosong) ──
+    # ── INFO BANNER ──
     history_dir   = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
+    # Selalu baca ulang dari filesystem agar real-time setelah upload
     history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
     jumlah_file   = len(history_files)
 
+    from datetime import date as _date
     if history_files:
-        from datetime import date as _date
-        last_dt    = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
-        selisih    = (_date.today() - last_dt).days
-        last_label = "Hari ini" if selisih == 0 else f"{selisih} hari lalu"
-        last_modified = datetime.fromtimestamp(history_files[0].stat().st_mtime).strftime("%d %b %Y")
-        last_sub      = last_label
-        last_class    = "warn" if selisih > 7 else ""
+        # Ambil info file terbaru
+        newest_info   = get_file_info(history_files[0])
+        last_upload   = newest_info.get("upload_time", "–")   # DD/MM/YYYY HH:MM:SS
+        last_modified_date = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
+        selisih    = (_date.today() - last_modified_date).days
+        last_label = "Hari ini" if selisih == 0 else (f"{selisih} hari lalu" if selisih > 0 else "Baru saja")
+        last_class = "warn" if selisih > 7 else ""
+        # Format singkat untuk stat card (tanggal + jam)
+        last_short = last_upload  # sudah format DD/MM/YYYY HH:MM:SS
     else:
-        last_modified = "Belum ada"; last_sub = "–"; last_class = "warn"
-        from datetime import date as _date
+        last_upload = "Belum ada"; last_label = "–"; last_class = "warn"; last_short = "Belum ada"
 
     tahun_aktif = int(st.session_state.get("tahun_anggaran", 2026))
 
-    # Tip berguna di banner
-    tip_msg = f"Tahun Anggaran aktif: <b>{tahun_aktif}</b> &nbsp;·&nbsp; Total file tersimpan: <b>{jumlah_file} file</b> &nbsp;·&nbsp; Upload terakhir: <b>{last_modified}</b>"
+    tip_msg = f"Tahun Anggaran aktif: <b>{tahun_aktif}</b> &nbsp;·&nbsp; Total file tersimpan: <b>{jumlah_file} file</b> &nbsp;·&nbsp; Upload terakhir: <b>{last_short}</b>"
     st.markdown(f"""
     <div class="info-banner">
         <div class="info-banner-left">
@@ -746,7 +748,7 @@ if "Upload Data" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── STAT CARDS ──
+    # ── STAT CARDS (selalu baca jumlah_file dari filesystem, bukan cache) ──
     st.markdown(f"""
     <div class="stat-grid">
         <div class="stat-card blue">
@@ -764,8 +766,8 @@ if "Upload Data" in menu:
         <div class="stat-card amber">
             <span class="stat-icon">⏱</span>
             <div class="stat-label">Upload Terakhir</div>
-            <div class="stat-val" style="font-size:15px;margin-top:4px;">{last_modified}</div>
-            <div class="stat-sub {last_class}">{last_sub}</div>
+            <div class="stat-val" style="font-size:13px;margin-top:4px;line-height:1.4;">{last_short}</div>
+            <div class="stat-sub {last_class}">{last_label}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -832,9 +834,14 @@ if "Upload Data" in menu:
             else:
                 st.session_state["df_blud"] = df.copy()
 
-            # Simpan ke history dengan timestamp akurat saat ini
+            # Simpan ke history dengan timestamp SEKARANG (real-time saat upload)
+            waktu_upload_sekarang = datetime.now()
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
-            st.success("✅ Data berhasil diimport & disimpan ke history!")
+            # Catat waktu upload terakhir ke session_state agar stat cards update
+            st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
+            st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
+
+            st.success(f"✅ Data berhasil diimport & disimpan ke history! ⏰ {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
 
             st.markdown("""
             <div class="pro-card" style="margin-top:20px;">
@@ -1177,31 +1184,72 @@ elif "History (Non-BLUD)" in menu:
 
     st.subheader("📋 Daftar File History")
 
-    # ── Render tabel history sebagai HTML agar waktu upload tampil lengkap ──
+    # ── Search & Pagination ──
+    col_search, col_info = st.columns([3, 1])
+    with col_search:
+        search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_non_search", placeholder="Ketik untuk filter...")
+    with col_info:
+        st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
+
+    # Filter berdasarkan search
+    if search_q.strip():
+        files_filtered = [f for f in files if search_q.lower() in f.name.lower()]
+    else:
+        files_filtered = files
+
+    # Pagination
+    PAGE_SIZE = 10
+    total_pages = max(1, (len(files_filtered) + PAGE_SIZE - 1) // PAGE_SIZE)
+    page_num    = st.session_state.get("hist_non_page", 1)
+    page_num    = max(1, min(page_num, total_pages))
+
+    col_prev, col_page, col_next = st.columns([1, 3, 1])
+    with col_prev:
+        if st.button("◀ Sebelumnya", key="hist_non_prev", disabled=(page_num <= 1)):
+            st.session_state["hist_non_page"] = page_num - 1
+            st.rerun()
+    with col_page:
+        st.markdown(f'<div style="text-align:center;padding:8px;font-size:13px;color:#475569;">Halaman <b>{page_num}</b> dari <b>{total_pages}</b> &nbsp;·&nbsp; Menampilkan {len(files_filtered)} dari {len(files)} file</div>', unsafe_allow_html=True)
+    with col_next:
+        if st.button("Berikutnya ▶", key="hist_non_next", disabled=(page_num >= total_pages)):
+            st.session_state["hist_non_page"] = page_num + 1
+            st.rerun()
+
+    # Slice file untuk halaman ini
+    start_idx = (page_num - 1) * PAGE_SIZE
+    files_page = files_filtered[start_idx : start_idx + PAGE_SIZE]
+
+    # ── Render tabel HTML — 10 baris per halaman ──
     rows_html = ""
-    for i, f in enumerate(files):
-        info     = get_file_info(f)
-        bg       = "#ffffff" if i % 2 == 0 else "#f8fafc"
-        fname_short = f.name[:55] + "…" if len(f.name) > 55 else f.name
+    for i, f in enumerate(files_page):
+        info        = get_file_info(f)
+        bg          = "#ffffff" if i % 2 == 0 else "#f8fafc"
+        fname_short = f.name[:52] + "…" if len(f.name) > 52 else f.name
+        global_no   = start_idx + i + 1
         rows_html += f"""
         <tr style="background:{bg};">
-            <td style="padding:10px 14px;font-size:12px;color:#0d1b2e;font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{f.name}">{fname_short}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tanggal_data']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#1d4ed8;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:right;">{info['size_kb']} KB</td>
+            <td style="padding:9px 12px;font-size:12px;color:#64748b;text-align:center;width:40px;">{global_no}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#0d1b2e;font-weight:500;" title="{f.name}">{fname_short}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;white-space:nowrap;">{info['tanggal_data']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#1d4ed8;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:right;white-space:nowrap;">{info['size_kb']} KB</td>
         </tr>"""
+
+    if not files_page:
+        rows_html = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">Tidak ada file yang cocok dengan pencarian.</td></tr>'
 
     st.markdown(f"""
     <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
         <table style="width:100%;border-collapse:collapse;">
             <thead>
                 <tr style="background:#1e3a5f;">
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-align:center;width:40px;">#</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
                 </tr>
             </thead>
             <tbody>{rows_html}</tbody>
@@ -1260,6 +1308,7 @@ elif "History (Non-BLUD)" in menu:
     with col_del:
         if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_non_final"):
             os.remove(selected_path)
+            st.session_state["hist_non_page"] = 1
             st.success(f"File `{selected}` berhasil dihapus.")
             st.rerun()
 
@@ -1275,30 +1324,68 @@ elif "History (BLUD)" in menu:
 
     st.subheader("📋 Daftar File History")
 
+    # ── Search & Pagination ──
+    col_search, col_info = st.columns([3, 1])
+    with col_search:
+        search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_blud_search", placeholder="Ketik untuk filter...")
+    with col_info:
+        st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
+
+    if search_q.strip():
+        files_filtered = [f for f in files if search_q.lower() in f.name.lower()]
+    else:
+        files_filtered = files
+
+    PAGE_SIZE = 10
+    total_pages = max(1, (len(files_filtered) + PAGE_SIZE - 1) // PAGE_SIZE)
+    page_num    = st.session_state.get("hist_blud_page", 1)
+    page_num    = max(1, min(page_num, total_pages))
+
+    col_prev, col_page, col_next = st.columns([1, 3, 1])
+    with col_prev:
+        if st.button("◀ Sebelumnya", key="hist_blud_prev", disabled=(page_num <= 1)):
+            st.session_state["hist_blud_page"] = page_num - 1
+            st.rerun()
+    with col_page:
+        st.markdown(f'<div style="text-align:center;padding:8px;font-size:13px;color:#475569;">Halaman <b>{page_num}</b> dari <b>{total_pages}</b> &nbsp;·&nbsp; Menampilkan {len(files_filtered)} dari {len(files)} file</div>', unsafe_allow_html=True)
+    with col_next:
+        if st.button("Berikutnya ▶", key="hist_blud_next", disabled=(page_num >= total_pages)):
+            st.session_state["hist_blud_page"] = page_num + 1
+            st.rerun()
+
+    start_idx  = (page_num - 1) * PAGE_SIZE
+    files_page = files_filtered[start_idx : start_idx + PAGE_SIZE]
+
     rows_html = ""
-    for i, f in enumerate(files):
-        info     = get_file_info(f)
-        bg       = "#ffffff" if i % 2 == 0 else "#f8fafc"
-        fname_short = f.name[:55] + "…" if len(f.name) > 55 else f.name
+    for i, f in enumerate(files_page):
+        info        = get_file_info(f)
+        bg          = "#ffffff" if i % 2 == 0 else "#f8fafc"
+        fname_short = f.name[:52] + "…" if len(f.name) > 52 else f.name
+        global_no   = start_idx + i + 1
         rows_html += f"""
         <tr style="background:{bg};">
-            <td style="padding:10px 14px;font-size:12px;color:#0d1b2e;font-weight:500;max-width:340px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="{f.name}">{fname_short}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tanggal_data']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#16a34a;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
-            <td style="padding:10px 14px;font-size:12px;color:#475569;text-align:right;">{info['size_kb']} KB</td>
+            <td style="padding:9px 12px;font-size:12px;color:#64748b;text-align:center;width:40px;">{global_no}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#0d1b2e;font-weight:500;" title="{f.name}">{fname_short}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;white-space:nowrap;">{info['tanggal_data']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#16a34a;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
+            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:right;white-space:nowrap;">{info['size_kb']} KB</td>
         </tr>"""
+
+    if not files_page:
+        rows_html = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">Tidak ada file yang cocok.</td></tr>'
 
     st.markdown(f"""
     <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
         <table style="width:100%;border-collapse:collapse;">
             <thead>
                 <tr style="background:#1e3a5f;">
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
-                    <th style="padding:11px 14px;font-size:11px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-align:center;width:40px;">#</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
+                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
                 </tr>
             </thead>
             <tbody>{rows_html}</tbody>
@@ -1313,7 +1400,6 @@ elif "History (BLUD)" in menu:
     info          = get_file_info(selected_path)
     df_hist       = load_history_file(selected_path)
 
-    # ── Info card detail ──
     st.markdown(f"""
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #2563eb;">
@@ -1357,6 +1443,7 @@ elif "History (BLUD)" in menu:
     with col_del:
         if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
             os.remove(selected_path)
+            st.session_state["hist_blud_page"] = 1
             st.success(f"File `{selected}` berhasil dihapus.")
             st.rerun()
 
