@@ -336,72 +336,76 @@ def show_auth_page():
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
-        # ── FORM REGISTRASI — semua di dalam st.form, urutan rapi seperti gambar 2 ──
-        # Username → Password → (strength indicator) → Konfirmasi Password → Nama Lengkap → Email → Tgl Lahir → HP → [Daftar Akun]
+        # ── FORM REGISTRASI ──
+        # Username & Password di LUAR form → strength indicator real-time saat mengetik
+        # Konfirmasi Password s.d. HP di DALAM form → layout tetap rapi
+
+        # [1] Username — di luar form
+        new_username = st.text_input("Username (unik)", key="reg_username_unique")
+
+        # [2] Password — di luar form agar strength indicator real-time
+        new_password = st.text_input(
+            "Password",
+            type="password",
+            key="reg_password_unique",
+            help="Min. 8 karakter, huruf kapital, huruf kecil, angka, dan karakter spesial"
+        )
+
+        # ── STRENGTH INDICATOR — muncul real-time saat mengetik ──
+        if new_password:
+            _strength = check_password_strength(new_password)
+            _bar_pct  = int(_strength["score"] / 5 * 100)
+
+            def _mk_badge(ok, label):
+                bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                mark = "✓" if ok else "✗"
+                return (
+                    f'<span style="background:{bg};color:white;padding:2px 8px;'
+                    f'border-radius:12px;font-size:11px;font-weight:700;">'
+                    f'{mark} {label}</span>'
+                )
+
+            _badges = " ".join([
+                _mk_badge(_strength["has_min_len"], "Min. 8 karakter"),
+                _mk_badge(_strength["has_upper"],   "Huruf Kapital"),
+                _mk_badge(_strength["has_lower"],   "Huruf Kecil"),
+                _mk_badge(_strength["has_digit"],   "Angka (0-9)"),
+                _mk_badge(_strength["has_special"], "Karakter Spesial (!@#$...)"),
+            ])
+
+            st.markdown(f"""
+                <div style="margin:-8px 0 10px 0;">
+                    <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;">
+                        <div style="background:{_strength['color']};width:{_bar_pct}%;height:6px;border-radius:10px;"></div>
+                    </div>
+                    <p style="color:{_strength['color']}!important;font-weight:800!important;font-size:12px!important;
+                              margin:0 0 5px 0;text-shadow:1px 1px 3px rgba(0,0,0,0.7)!important;">
+                        {_strength['emoji']} Kekuatan Password: <b>{_strength['level']}</b>
+                    </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">{_badges}</div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if not _strength["is_strong"]:
+                st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah.")
+        else:
+            st.markdown("""
+                <div style="margin:-8px 0 10px 0;padding:6px 10px;background:rgba(255,255,255,0.1);
+                            border-radius:8px;border-left:3px solid rgba(255,255,255,0.35);">
+                    <p style="color:rgba(255,255,255,0.85)!important;font-size:11px!important;
+                              font-weight:600!important;margin:0;text-shadow:1px 1px 2px rgba(0,0,0,0.5)!important;">
+                        💡 Harus mengandung: huruf kapital, huruf kecil, angka, karakter spesial (!@#$...), min. 8 karakter.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        # [3–7] Sisa field di DALAM form (Konfirmasi Password s.d. HP) + tombol submit
         with st.form(key="register_form"):
-            new_username = st.text_input("Username (unik)", key="reg_username_unique")
-
-            new_password = st.text_input(
-                "Password",
-                type="password",
-                key="reg_password_unique",
-                help="Min. 8 karakter, huruf kapital, huruf kecil, angka, dan karakter spesial"
-            )
-
-            # ── STRENGTH INDICATOR tepat di bawah field Password (update saat form di-submit / rerun) ──
-            if new_password:
-                strength = check_password_strength(new_password)
-                bar_pct  = int(strength["score"] / 5 * 100)
-
-                def _badge(ok, label):
-                    bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
-                    mark = "✓" if ok else "✗"
-                    return (
-                        f'<span style="background:{bg};color:white;padding:2px 8px;'
-                        f'border-radius:12px;font-size:11px;font-weight:700;">'
-                        f'{mark} {label}</span>'
-                    )
-
-                badges_html = " ".join([
-                    _badge(strength["has_min_len"], "Min. 8 karakter"),
-                    _badge(strength["has_upper"],   "Huruf Kapital"),
-                    _badge(strength["has_lower"],   "Huruf Kecil"),
-                    _badge(strength["has_digit"],   "Angka (0-9)"),
-                    _badge(strength["has_special"], "Karakter Spesial (!@#$...)"),
-                ])
-
-                st.markdown(f"""
-                    <div style="margin:-8px 0 10px 0;">
-                        <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;">
-                            <div style="background:{strength['color']};width:{bar_pct}%;height:6px;border-radius:10px;"></div>
-                        </div>
-                        <p style="color:{strength['color']}!important;font-weight:800!important;font-size:12px!important;
-                                  margin:0 0 5px 0;text-shadow:1px 1px 3px rgba(0,0,0,0.7)!important;">
-                            {strength['emoji']} Kekuatan Password: <b>{strength['level']}</b>
-                        </p>
-                        <div style="display:flex;flex-wrap:wrap;gap:4px;">{badges_html}</div>
-                    </div>
-                """, unsafe_allow_html=True)
-
-                if not strength["is_strong"]:
-                    st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah.")
-            else:
-                st.markdown("""
-                    <div style="margin:-8px 0 10px 0;padding:6px 10px;background:rgba(255,255,255,0.1);
-                                border-radius:8px;border-left:3px solid rgba(255,255,255,0.35);">
-                        <p style="color:rgba(255,255,255,0.85)!important;font-size:11px!important;
-                                  font-weight:600!important;margin:0;text-shadow:1px 1px 2px rgba(0,0,0,0.5)!important;">
-                            💡 Harus mengandung: huruf kapital, huruf kecil, angka, karakter spesial (!@#$...), min. 8 karakter.
-                        </p>
-                    </div>
-                """, unsafe_allow_html=True)
-
             confirm_password = st.text_input(
                 "Konfirmasi Password",
                 type="password",
                 key="reg_confirm_unique"
             )
-
             nama_lengkap = st.text_input("Nama Lengkap", key="reg_nama_unique")
             email        = st.text_input("Email",         key="reg_email_unique")
             tgl_lahir    = st.date_input(
