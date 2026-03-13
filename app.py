@@ -336,210 +336,173 @@ def show_auth_page():
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
-        # ── PASSWORD STRENGTH INDICATOR (di luar form agar live/real-time) ──
-        pw_preview = st.text_input(
-            "Password",
-            type="password",
-            key="reg_pw_preview",
-            help="Min. 8 karakter, huruf kapital, angka, dan karakter spesial"
-        )
-
-        if pw_preview:
-            strength = check_password_strength(pw_preview)
-            bar_pct  = int(strength["score"] / 5 * 100)
-
-            def badge(ok, label):
-                bg = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
-                mark = "✓" if ok else "✗"
-                return (
-                    f'<span style="background:{bg};color:white;padding:2px 8px;'
-                    f'border-radius:12px;font-size:12px;font-weight:700;">'
-                    f'{mark} {label}</span>'
-                )
-
-            badges_html = " ".join([
-                badge(strength["has_min_len"], "Min. 8 karakter"),
-                badge(strength["has_upper"],   "Huruf Kapital"),
-                badge(strength["has_lower"],   "Huruf Kecil"),
-                badge(strength["has_digit"],   "Angka (0-9)"),
-                badge(strength["has_special"], "Karakter Spesial (!@#$...)"),
-            ])
-
-            st.markdown(f"""
-                <div style="margin: -8px 0 12px 0;">
-                    <div style="
-                        background: rgba(255,255,255,0.2);
-                        border-radius: 10px;
-                        height: 8px;
-                        width: 100%;
-                        margin-bottom: 6px;
-                    ">
-                        <div style="
-                            background: {strength['color']};
-                            width: {bar_pct}%;
-                            height: 8px;
-                            border-radius: 10px;
-                            transition: width 0.3s ease;
-                        "></div>
-                    </div>
-                    <p style="
-                        color: {strength['color']} !important;
-                        font-weight: 800 !important;
-                        font-size: 14px !important;
-                        margin: 0 0 6px 0;
-                        text-shadow: 1px 1px 3px rgba(0,0,0,0.7) !important;
-                    ">{strength['emoji']} Kekuatan Password: <b>{strength['level']}</b></p>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        {badges_html}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-            if not strength["is_strong"]:
-                st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah di atas.")
-        else:
-            # Tampilkan hint saat belum diisi
-            st.markdown("""
-                <div style="
-                    margin: -8px 0 12px 0;
-                    padding: 8px 12px;
-                    background: rgba(255,255,255,0.1);
-                    border-radius: 8px;
-                    border-left: 3px solid rgba(255,255,255,0.4);
-                ">
-                    <p style="
-                        color: rgba(255,255,255,0.85) !important;
-                        font-size: 13px !important;
-                        font-weight: 600 !important;
-                        margin: 0;
-                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
-                    ">
-                        💡 Password harus mengandung: huruf kapital, huruf kecil, angka, 
-                        karakter spesial (!@#$...), dan minimal 8 karakter.
-                    </p>
-                </div>
-            """, unsafe_allow_html=True)
-
-        # ── FORM REGISTRASI ──
+        # ── FORM REGISTRASI — semua di dalam st.form, urutan rapi seperti gambar 2 ──
+        # Username → Password → (strength indicator) → Konfirmasi Password → Nama Lengkap → Email → Tgl Lahir → HP → [Daftar Akun]
         with st.form(key="register_form"):
-            new_username     = st.text_input("Username (unik)", key="reg_username_unique")
+            new_username = st.text_input("Username (unik)", key="reg_username_unique")
 
-            new_password     = st.text_input(
-                "Konfirmasi ulang Password",
+            new_password = st.text_input(
+                "Password",
                 type="password",
                 key="reg_password_unique",
-                help="Ketik ulang password yang sama seperti di atas"
+                help="Min. 8 karakter, huruf kapital, huruf kecil, angka, dan karakter spesial"
             )
 
+            # ── STRENGTH INDICATOR tepat di bawah field Password (update saat form di-submit / rerun) ──
+            if new_password:
+                strength = check_password_strength(new_password)
+                bar_pct  = int(strength["score"] / 5 * 100)
+
+                def _badge(ok, label):
+                    bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                    mark = "✓" if ok else "✗"
+                    return (
+                        f'<span style="background:{bg};color:white;padding:2px 8px;'
+                        f'border-radius:12px;font-size:11px;font-weight:700;">'
+                        f'{mark} {label}</span>'
+                    )
+
+                badges_html = " ".join([
+                    _badge(strength["has_min_len"], "Min. 8 karakter"),
+                    _badge(strength["has_upper"],   "Huruf Kapital"),
+                    _badge(strength["has_lower"],   "Huruf Kecil"),
+                    _badge(strength["has_digit"],   "Angka (0-9)"),
+                    _badge(strength["has_special"], "Karakter Spesial (!@#$...)"),
+                ])
+
+                st.markdown(f"""
+                    <div style="margin:-8px 0 10px 0;">
+                        <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;">
+                            <div style="background:{strength['color']};width:{bar_pct}%;height:6px;border-radius:10px;"></div>
+                        </div>
+                        <p style="color:{strength['color']}!important;font-weight:800!important;font-size:12px!important;
+                                  margin:0 0 5px 0;text-shadow:1px 1px 3px rgba(0,0,0,0.7)!important;">
+                            {strength['emoji']} Kekuatan Password: <b>{strength['level']}</b>
+                        </p>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;">{badges_html}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                if not strength["is_strong"]:
+                    st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah.")
+            else:
+                st.markdown("""
+                    <div style="margin:-8px 0 10px 0;padding:6px 10px;background:rgba(255,255,255,0.1);
+                                border-radius:8px;border-left:3px solid rgba(255,255,255,0.35);">
+                        <p style="color:rgba(255,255,255,0.85)!important;font-size:11px!important;
+                                  font-weight:600!important;margin:0;text-shadow:1px 1px 2px rgba(0,0,0,0.5)!important;">
+                            💡 Harus mengandung: huruf kapital, huruf kecil, angka, karakter spesial (!@#$...), min. 8 karakter.
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
+
             confirm_password = st.text_input(
-                "Konfirmasi Password (sekali lagi)",
+                "Konfirmasi Password",
                 type="password",
                 key="reg_confirm_unique"
             )
 
             nama_lengkap = st.text_input("Nama Lengkap", key="reg_nama_unique")
-            email        = st.text_input("Email", key="reg_email_unique")
+            email        = st.text_input("Email",         key="reg_email_unique")
             tgl_lahir    = st.date_input(
                 "Tanggal Lahir",
                 min_value=datetime(1900, 1, 1),
                 max_value=datetime.now(),
                 key="reg_tgl_lahir_unique"
             )
-            no_hp        = st.text_input("Nomor HP / WA", key="reg_hp_unique")
+            no_hp = st.text_input("Nomor HP / WA", key="reg_hp_unique")
 
             submit_button = st.form_submit_button("Daftar Akun", type="primary", use_container_width=True)
 
-            if submit_button:
-                error_msg = ""
+        if submit_button:
+            error_msg = ""
 
-                if not new_username.strip():
-                    error_msg = "Username harus diisi."
-                elif not pw_preview.strip():
-                    error_msg = "Password harus diisi."
-                elif not check_password_strength(pw_preview)["is_strong"]:
-                    error_msg = (
-                        "Password tidak cukup kuat! Harus mengandung huruf kapital, "
-                        "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
-                    )
-                elif new_password != pw_preview:
-                    error_msg = "Konfirmasi ulang password tidak cocok dengan password yang diisi di atas."
-                elif new_password != confirm_password:
-                    error_msg = "Konfirmasi password tidak cocok."
-                elif not nama_lengkap.strip():
-                    error_msg = "Nama lengkap harus diisi."
-                elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
-                    error_msg = "Email tidak valid."
-                elif not no_hp.strip():
-                    error_msg = "Nomor HP harus diisi."
+            if not new_username.strip():
+                error_msg = "Username harus diisi."
+            elif not new_password.strip():
+                error_msg = "Password harus diisi."
+            elif not check_password_strength(new_password)["is_strong"]:
+                error_msg = (
+                    "Password tidak cukup kuat! Harus mengandung huruf kapital, "
+                    "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
+                )
+            elif new_password != confirm_password:
+                error_msg = "Konfirmasi password tidak cocok."
+            elif not nama_lengkap.strip():
+                error_msg = "Nama lengkap harus diisi."
+            elif not re.match(r"[^@]+@[^@]+\.[^@]+", email):
+                error_msg = "Email tidak valid."
+            elif not no_hp.strip():
+                error_msg = "Nomor HP harus diisi."
 
-                if error_msg:
-                    st.session_state["register_error"] = f"**Registrasi gagal:** {error_msg}"
+            if error_msg:
+                st.session_state["register_error"] = f"**Registrasi gagal:** {error_msg}"
+                st.rerun()
+            else:
+                users = load_users()
+                if new_username in users:
+                    st.session_state["register_error"] = f"**Registrasi gagal:** Username '{new_username}' sudah digunakan."
                     st.rerun()
                 else:
-                    users = load_users()
-                    if new_username in users:
-                        st.session_state["register_error"] = f"**Registrasi gagal:** Username '{new_username}' sudah digunakan."
-                        st.rerun()
-                    else:
-                        hashed = bcrypt.hashpw(pw_preview.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                        new_user_data = {
-                            "password":    hashed,
-                            "nama_lengkap": nama_lengkap.strip(),
-                            "email":       email.strip(),
-                            "tgl_lahir":   str(tgl_lahir),
-                            "no_hp":       no_hp.strip()
-                        }
-                        save_user(new_username, new_user_data)
+                    hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    new_user_data = {
+                        "password":    hashed,
+                        "nama_lengkap": nama_lengkap.strip(),
+                        "email":       email.strip(),
+                        "tgl_lahir":   str(tgl_lahir),
+                        "no_hp":       no_hp.strip()
+                    }
+                    save_user(new_username, new_user_data)
 
-                        import time
-                        st.markdown(f"""
-                            <style>
-                            @keyframes fadeInReg {{
-                                0%   {{ opacity: 0; transform: translateY(-15px); }}
-                                100% {{ opacity: 1; transform: translateY(0); }}
-                            }}
-                            .reg-success-box {{
-                                background: rgba(0, 180, 100, 0.85);
-                                border-radius: 12px;
-                                padding: 24px;
-                                text-align: center;
-                                animation: fadeInReg 0.6s ease forwards;
-                                margin: 10px 0;
-                            }}
-                            .reg-success-box h3 {{
-                                color: white !important;
-                                font-size: 22px !important;
-                                font-weight: 900 !important;
-                                text-shadow: none !important;
-                                margin-bottom: 8px;
-                            }}
-                            .reg-success-box p {{
-                                color: #e0ffe0 !important;
-                                font-size: 15px !important;
-                                text-shadow: none !important;
-                            }}
-                            </style>
-                            <div class="reg-success-box">
-                                <h3>✅ Registrasi Berhasil!</h3>
-                                <p>Akun <b>{new_username}</b> ({nama_lengkap}) telah dibuat.<br>
-                                Silakan menuju halaman <b>Login</b> untuk masuk ke sistem.</p>
-                            </div>
-                        """, unsafe_allow_html=True)
+                    import time
+                    st.markdown(f"""
+                        <style>
+                        @keyframes fadeInReg {{
+                            0%   {{ opacity: 0; transform: translateY(-15px); }}
+                            100% {{ opacity: 1; transform: translateY(0); }}
+                        }}
+                        .reg-success-box {{
+                            background: rgba(0, 180, 100, 0.85);
+                            border-radius: 12px;
+                            padding: 24px;
+                            text-align: center;
+                            animation: fadeInReg 0.6s ease forwards;
+                            margin: 10px 0;
+                        }}
+                        .reg-success-box h3 {{
+                            color: white !important;
+                            font-size: 22px !important;
+                            font-weight: 900 !important;
+                            text-shadow: none !important;
+                            margin-bottom: 8px;
+                        }}
+                        .reg-success-box p {{
+                            color: #e0ffe0 !important;
+                            font-size: 15px !important;
+                            text-shadow: none !important;
+                        }}
+                        </style>
+                        <div class="reg-success-box">
+                            <h3>✅ Registrasi Berhasil!</h3>
+                            <p>Akun <b>{new_username}</b> ({nama_lengkap}) telah dibuat.<br>
+                            Silakan menuju halaman <b>Login</b> untuk masuk ke sistem.</p>
+                        </div>
+                    """, unsafe_allow_html=True)
 
-                        bar = st.progress(0, text="Mengalihkan ke halaman Login...")
-                        for i in range(1, 101):
-                            time.sleep(0.02)
-                            bar.progress(i, text=f"Mengalihkan ke halaman Login... {i}%")
+                    bar = st.progress(0, text="Mengalihkan ke halaman Login...")
+                    for i in range(1, 101):
+                        time.sleep(0.02)
+                        bar.progress(i, text=f"Mengalihkan ke halaman Login... {i}%")
 
-                        st.session_state["just_registered"] = True
-                        st.session_state["just_registered_username"] = new_username
-                        st.session_state["just_registered_nama"] = nama_lengkap
-                        st.session_state["just_registered_message"] = (
-                            f"**Registrasi berhasil!** Akun **{new_username}** ({nama_lengkap}) telah dibuat. Silakan login."
-                        )
+                    st.session_state["just_registered"] = True
+                    st.session_state["just_registered_username"] = new_username
+                    st.session_state["just_registered_nama"] = nama_lengkap
+                    st.session_state["just_registered_message"] = (
+                        f"**Registrasi berhasil!** Akun **{new_username}** ({nama_lengkap}) telah dibuat. Silakan login."
+                    )
 
-                        st.query_params["tab"] = "login"
-                        st.rerun()
+                    st.query_params["tab"] = "login"
+                    st.rerun()
 
     # ─────────────────────────────────────────
     #   TAB RESET PASSWORD
@@ -554,108 +517,108 @@ def show_auth_page():
             msg = st.session_state.pop("reset_error")
             st.error(msg)
 
-        # ── PASSWORD STRENGTH INDICATOR UNTUK RESET ──
-        reset_pw_preview = st.text_input(
-            "Password Baru",
-            type="password",
-            key="reset_pw_preview",
-            help="Min. 8 karakter, huruf kapital, angka, dan karakter spesial"
-        )
-
-        if reset_pw_preview:
-            strength_r = check_password_strength(reset_pw_preview)
-            bar_pct_r  = int(strength_r["score"] / 5 * 100)
-
-            def badge_r(ok, label):
-                bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
-                mark = "✓" if ok else "✗"
-                return (
-                    f'<span style="background:{bg};color:white;padding:2px 8px;'
-                    f'border-radius:12px;font-size:12px;font-weight:700;">'
-                    f'{mark} {label}</span>'
-                )
-
-            badges_html_r = " ".join([
-                badge_r(strength_r["has_min_len"], "Min. 8 karakter"),
-                badge_r(strength_r["has_upper"],   "Huruf Kapital"),
-                badge_r(strength_r["has_lower"],   "Huruf Kecil"),
-                badge_r(strength_r["has_digit"],   "Angka (0-9)"),
-                badge_r(strength_r["has_special"], "Karakter Spesial (!@#$...)"),
-            ])
-
-            st.markdown(f"""
-                <div style="margin: -8px 0 12px 0;">
-                    <div style="
-                        background: rgba(255,255,255,0.2);
-                        border-radius: 10px;
-                        height: 8px;
-                        width: 100%;
-                        margin-bottom: 6px;
-                    ">
-                        <div style="
-                            background: {strength_r['color']};
-                            width: {bar_pct_r}%;
-                            height: 8px;
-                            border-radius: 10px;
-                            transition: width 0.3s ease;
-                        "></div>
-                    </div>
-                    <p style="
-                        color: {strength_r['color']} !important;
-                        font-weight: 800 !important;
-                        font-size: 14px !important;
-                        margin: 0 0 6px 0;
-                        text-shadow: 1px 1px 3px rgba(0,0,0,0.7) !important;
-                    ">{strength_r['emoji']} Kekuatan Password: <b>{strength_r['level']}</b></p>
-                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                        {badges_html_r}
-                    </div>
-                </div>
-            """, unsafe_allow_html=True)
-
-            if not strength_r["is_strong"]:
-                st.warning("⚠️ Password baru belum cukup kuat! Lengkapi kriteria yang masih merah.")
-
+        # ── FORM RESET — semua di dalam st.form, urutan rapi ──
+        # Username → HP → Password Baru → (strength) → Konfirmasi → [Reset Password]
         with st.form(key="reset_form"):
-            reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
-            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
-            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
+            reset_username = st.text_input("Username yang ingin direset", key="reset_username_unique")
+            reset_no_hp    = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
+
+            new_password_reset = st.text_input(
+                "Password Baru",
+                type="password",
+                key="reset_pw_unique",
+                help="Min. 8 karakter, huruf kapital, huruf kecil, angka, dan karakter spesial"
+            )
+
+            # ── STRENGTH INDICATOR tepat di bawah field Password Baru ──
+            if new_password_reset:
+                strength_r = check_password_strength(new_password_reset)
+                bar_pct_r  = int(strength_r["score"] / 5 * 100)
+
+                def _badge_r(ok, label):
+                    bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                    mark = "✓" if ok else "✗"
+                    return (
+                        f'<span style="background:{bg};color:white;padding:2px 8px;'
+                        f'border-radius:12px;font-size:11px;font-weight:700;">'
+                        f'{mark} {label}</span>'
+                    )
+
+                badges_html_r = " ".join([
+                    _badge_r(strength_r["has_min_len"], "Min. 8 karakter"),
+                    _badge_r(strength_r["has_upper"],   "Huruf Kapital"),
+                    _badge_r(strength_r["has_lower"],   "Huruf Kecil"),
+                    _badge_r(strength_r["has_digit"],   "Angka (0-9)"),
+                    _badge_r(strength_r["has_special"], "Karakter Spesial (!@#$...)"),
+                ])
+
+                st.markdown(f"""
+                    <div style="margin:-8px 0 10px 0;">
+                        <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;">
+                            <div style="background:{strength_r['color']};width:{bar_pct_r}%;height:6px;border-radius:10px;"></div>
+                        </div>
+                        <p style="color:{strength_r['color']}!important;font-weight:800!important;font-size:12px!important;
+                                  margin:0 0 5px 0;text-shadow:1px 1px 3px rgba(0,0,0,0.7)!important;">
+                            {strength_r['emoji']} Kekuatan Password: <b>{strength_r['level']}</b>
+                        </p>
+                        <div style="display:flex;flex-wrap:wrap;gap:4px;">{badges_html_r}</div>
+                    </div>
+                """, unsafe_allow_html=True)
+
+                if not strength_r["is_strong"]:
+                    st.warning("⚠️ Password baru belum cukup kuat! Lengkapi kriteria yang masih merah.")
+            else:
+                st.markdown("""
+                    <div style="margin:-8px 0 10px 0;padding:6px 10px;background:rgba(255,255,255,0.1);
+                                border-radius:8px;border-left:3px solid rgba(255,255,255,0.35);">
+                        <p style="color:rgba(255,255,255,0.85)!important;font-size:11px!important;
+                                  font-weight:600!important;margin:0;text-shadow:1px 1px 2px rgba(0,0,0,0.5)!important;">
+                            💡 Harus mengandung: huruf kapital, huruf kecil, angka, karakter spesial (!@#$...), min. 8 karakter.
+                        </p>
+                    </div>
+                """, unsafe_allow_html=True)
+
+            confirm_password_reset = st.text_input(
+                "Konfirmasi Password Baru",
+                type="password",
+                key="reset_confirm_unique"
+            )
 
             reset_button = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
 
-            if reset_button:
-                error_msg = ""
-                if not reset_username.strip():
-                    error_msg = "Username harus diisi."
-                elif not reset_no_hp.strip():
-                    error_msg = "Nomor HP harus diisi untuk verifikasi."
-                elif not reset_pw_preview.strip():
-                    error_msg = "Password baru harus diisi."
-                elif not check_password_strength(reset_pw_preview)["is_strong"]:
-                    error_msg = (
-                        "Password baru tidak cukup kuat! Harus mengandung huruf kapital, "
-                        "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
-                    )
-                elif reset_pw_preview != confirm_password_reset:
-                    error_msg = "Konfirmasi password baru tidak cocok."
+        if reset_button:
+            error_msg = ""
+            if not reset_username.strip():
+                error_msg = "Username harus diisi."
+            elif not reset_no_hp.strip():
+                error_msg = "Nomor HP harus diisi untuk verifikasi."
+            elif not new_password_reset.strip():
+                error_msg = "Password baru harus diisi."
+            elif not check_password_strength(new_password_reset)["is_strong"]:
+                error_msg = (
+                    "Password baru tidak cukup kuat! Harus mengandung huruf kapital, "
+                    "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
+                )
+            elif new_password_reset != confirm_password_reset:
+                error_msg = "Konfirmasi password baru tidak cocok."
 
-                if error_msg:
-                    st.session_state["reset_error"] = f"**Reset gagal:** {error_msg}"
+            if error_msg:
+                st.session_state["reset_error"] = f"**Reset gagal:** {error_msg}"
+                st.rerun()
+            else:
+                users = load_users()
+                if reset_username not in users:
+                    st.session_state["reset_error"] = f"**Username '{reset_username}' tidak ditemukan.**"
+                    st.rerun()
+                elif users[reset_username].get("no_hp", "").strip() != reset_no_hp.strip():
+                    st.session_state["reset_error"] = "**Nomor HP tidak sesuai dengan akun ini.**"
                     st.rerun()
                 else:
-                    users = load_users()
-                    if reset_username not in users:
-                        st.session_state["reset_error"] = f"**Username '{reset_username}' tidak ditemukan.**"
-                        st.rerun()
-                    elif users[reset_username].get("no_hp", "").strip() != reset_no_hp.strip():
-                        st.session_state["reset_error"] = "**Nomor HP tidak sesuai dengan akun ini.**"
-                        st.rerun()
-                    else:
-                        hashed = bcrypt.hashpw(reset_pw_preview.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                        users[reset_username]["password"] = hashed
-                        save_user(reset_username, users[reset_username])
-                        st.session_state["reset_success"] = f"**Password berhasil direset!** Untuk akun '{reset_username}'. Silakan login 🎉"
-                        st.rerun()
+                    hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                    users[reset_username]["password"] = hashed
+                    save_user(reset_username, users[reset_username])
+                    st.session_state["reset_success"] = f"**Password berhasil direset!** Untuk akun '{reset_username}'. Silakan login 🎉"
+                    st.rerun()
 
     st.markdown("---")
 
