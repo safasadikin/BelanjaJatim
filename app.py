@@ -496,26 +496,50 @@ def compute_pct(df):
 def save_to_history(df, tipe, tanggal_impor, tahun):
     dir_path      = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
     tanggal_clean = tanggal_impor.replace("/", "-")
-    timestamp     = datetime.now().strftime("%Y%m%d_%H%M%S")
+    # Catat waktu TEPAT saat fungsi ini dipanggil = waktu upload sebenarnya
+    waktu_upload_aktual = datetime.now()
+    timestamp     = waktu_upload_aktual.strftime("%Y%m%d_%H%M%S")
     filename      = f"{tipe.lower()}_{tanggal_clean}_TA{tahun}_{timestamp}.csv"
-    df.to_csv(os.path.join(dir_path, filename), index=False, encoding="utf-8-sig")
+    filepath      = os.path.join(dir_path, filename)
+
+    # Tulis baris metadata waktu upload di baris ke-1 CSV (sebelum header data)
+    # Format: #UPLOAD_TIME=DD/MM/YYYY HH:MM:SS
+    waktu_str = waktu_upload_aktual.strftime("%d/%m/%Y %H:%M:%S")
+    with open(filepath, "w", encoding="utf-8-sig") as f:
+        f.write(f"#UPLOAD_TIME={waktu_str}\n")
+        df.to_csv(f, index=False)
 
 def load_history_list(tipe):
     dir_path = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
     return sorted(Path(dir_path).glob("*.csv"), reverse=True)
 
 def load_history_file(filepath):
-    return pd.read_csv(filepath, encoding="utf-8-sig")
+    # Baca CSV, skip baris metadata #UPLOAD_TIME jika ada
+    with open(filepath, encoding="utf-8-sig") as f:
+        first = f.readline()
+    skip = 1 if first.startswith("#UPLOAD_TIME=") else 0
+    return pd.read_csv(filepath, encoding="utf-8-sig", skiprows=skip)
 
 def get_file_info(filepath):
-    p    = Path(filepath)
-    stat = p.stat()
-    modified_dt   = datetime.fromtimestamp(stat.st_mtime)
-    modified_time = modified_dt.strftime("%d/%m/%Y %H:%M:%S")
-    size_kb = round(stat.st_size / 1024, 1)
-    name  = p.stem
+    p       = Path(filepath)
+    size_kb = round(p.stat().st_size / 1024, 1)
+    name    = p.stem
 
-    # Format: non-blud_DD-MM-YYYY_TAYYYY_YYYYMMDD_HHMMSS  atau  blud_...
+    # ── Baca waktu upload dari metadata di dalam file CSV ──
+    upload_time = None
+    try:
+        with open(filepath, encoding="utf-8-sig") as f:
+            first_line = f.readline().strip()
+        if first_line.startswith("#UPLOAD_TIME="):
+            upload_time = first_line.split("=", 1)[1]  # "DD/MM/YYYY HH:MM:SS"
+    except Exception:
+        pass
+
+    # Fallback ke st_mtime jika tidak ada metadata (file lama)
+    if not upload_time:
+        upload_time = datetime.fromtimestamp(p.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
+
+    # ── Parse tanggal data & tahun dari nama file ──
     m = re.match(
         r"^(blud|non-blud|non_blud|nonblud)_"
         r"(\d{2}-\d{2}-\d{4})_"
@@ -523,30 +547,13 @@ def get_file_info(filepath):
         r"(\d{8})_(\d{6})$",
         name.lower()
     )
-    if m:
-        tanggal_data   = m.group(2).replace("-", "/")
-        tahun_anggaran = m.group(3)
-        ts_raw = m.group(4) + m.group(5)
-        try:
-            upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S")
-            upload_time = upload_dt.strftime("%d/%m/%Y %H:%M:%S")
-        except ValueError:
-            # Fallback ke modified_time jika timestamp tidak valid
-            upload_time = modified_time
-        return {
-            "tanggal_data":   tanggal_data,
-            "tahun_anggaran": tahun_anggaran,
-            "upload_time":    upload_time,
-            "modified_time":  modified_time,
-            "size_kb":        size_kb,
-        }
+    tanggal_data   = m.group(2).replace("-", "/") if m else "–"
+    tahun_anggaran = m.group(3)                   if m else "–"
 
-    # Fallback: tidak bisa parse nama file
     return {
-        "tanggal_data":   "–",
-        "tahun_anggaran": "–",
-        "upload_time":    modified_time,
-        "modified_time":  modified_time,
+        "tanggal_data":   tanggal_data,
+        "tahun_anggaran": tahun_anggaran,
+        "upload_time":    upload_time,
         "size_kb":        size_kb,
     }
 
@@ -1184,78 +1191,51 @@ elif "History (Non-BLUD)" in menu:
 
     st.subheader("📋 Daftar File History")
 
-    # ── Search & Pagination ──
-    col_search, col_info = st.columns([3, 1])
+    # ── Buat DataFrame ringkasan untuk tabel scrollable ──
+    summary_rows = []
+    for i, f in enumerate(files):
+        info = get_file_info(f)
+        summary_rows.append({
+            "#":             i + 1,
+            "Nama File":     f.name,
+            "Tanggal Data":  info["tanggal_data"],
+            "Tahun":         info["tahun_anggaran"],
+            "Waktu Upload":  info["upload_time"],
+            "Ukuran":        f"{info['size_kb']} KB",
+        })
+
+    import pandas as pd
+    df_summary = pd.DataFrame(summary_rows)
+
+    # Filter / search
+    col_search, col_info2 = st.columns([3, 1])
     with col_search:
         search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_non_search", placeholder="Ketik untuk filter...")
-    with col_info:
+    with col_info2:
         st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
 
-    # Filter berdasarkan search
     if search_q.strip():
-        files_filtered = [f for f in files if search_q.lower() in f.name.lower()]
+        mask       = df_summary["Nama File"].str.contains(search_q, case=False, na=False) | \
+                     df_summary["Tanggal Data"].str.contains(search_q, case=False, na=False)
+        df_shown   = df_summary[mask].reset_index(drop=True)
     else:
-        files_filtered = files
+        df_shown   = df_summary
 
-    # Pagination
-    PAGE_SIZE = 10
-    total_pages = max(1, (len(files_filtered) + PAGE_SIZE - 1) // PAGE_SIZE)
-    page_num    = st.session_state.get("hist_non_page", 1)
-    page_num    = max(1, min(page_num, total_pages))
-
-    col_prev, col_page, col_next = st.columns([1, 3, 1])
-    with col_prev:
-        if st.button("◀ Sebelumnya", key="hist_non_prev", disabled=(page_num <= 1)):
-            st.session_state["hist_non_page"] = page_num - 1
-            st.rerun()
-    with col_page:
-        st.markdown(f'<div style="text-align:center;padding:8px;font-size:13px;color:#475569;">Halaman <b>{page_num}</b> dari <b>{total_pages}</b> &nbsp;·&nbsp; Menampilkan {len(files_filtered)} dari {len(files)} file</div>', unsafe_allow_html=True)
-    with col_next:
-        if st.button("Berikutnya ▶", key="hist_non_next", disabled=(page_num >= total_pages)):
-            st.session_state["hist_non_page"] = page_num + 1
-            st.rerun()
-
-    # Slice file untuk halaman ini
-    start_idx = (page_num - 1) * PAGE_SIZE
-    files_page = files_filtered[start_idx : start_idx + PAGE_SIZE]
-
-    # ── Render tabel HTML — 10 baris per halaman ──
-    rows_html = ""
-    for i, f in enumerate(files_page):
-        info        = get_file_info(f)
-        bg          = "#ffffff" if i % 2 == 0 else "#f8fafc"
-        fname_short = f.name[:52] + "…" if len(f.name) > 52 else f.name
-        global_no   = start_idx + i + 1
-        rows_html += f"""
-        <tr style="background:{bg};">
-            <td style="padding:9px 12px;font-size:12px;color:#64748b;text-align:center;width:40px;">{global_no}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#0d1b2e;font-weight:500;" title="{f.name}">{fname_short}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;white-space:nowrap;">{info['tanggal_data']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#1d4ed8;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:right;white-space:nowrap;">{info['size_kb']} KB</td>
-        </tr>"""
-
-    if not files_page:
-        rows_html = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">Tidak ada file yang cocok dengan pencarian.</td></tr>'
-
-    st.markdown(f"""
-    <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
-        <table style="width:100%;border-collapse:collapse;">
-            <thead>
-                <tr style="background:#1e3a5f;">
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-align:center;width:40px;">#</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
-                </tr>
-            </thead>
-            <tbody>{rows_html}</tbody>
-        </table>
-    </div>
-    """, unsafe_allow_html=True)
+    # Tabel scrollable — tinggi terbatas, tidak melebar ke bawah tanpa batas
+    st.dataframe(
+        df_shown,
+        use_container_width=True,
+        hide_index=True,
+        height=370,           # ~10 baris, lalu scroll
+        column_config={
+            "#":            st.column_config.NumberColumn(width="small"),
+            "Nama File":    st.column_config.TextColumn(width="large"),
+            "Tanggal Data": st.column_config.TextColumn(width="medium"),
+            "Tahun":        st.column_config.TextColumn(width="small"),
+            "Waktu Upload": st.column_config.TextColumn(width="medium"),
+            "Ukuran":       st.column_config.TextColumn(width="small"),
+        }
+    )
 
     st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
@@ -1324,74 +1304,49 @@ elif "History (BLUD)" in menu:
 
     st.subheader("📋 Daftar File History")
 
-    # ── Search & Pagination ──
-    col_search, col_info = st.columns([3, 1])
+    # ── Buat DataFrame ringkasan untuk tabel scrollable ──
+    summary_rows = []
+    for i, f in enumerate(files):
+        info = get_file_info(f)
+        summary_rows.append({
+            "#":             i + 1,
+            "Nama File":     f.name,
+            "Tanggal Data":  info["tanggal_data"],
+            "Tahun":         info["tahun_anggaran"],
+            "Waktu Upload":  info["upload_time"],
+            "Ukuran":        f"{info['size_kb']} KB",
+        })
+
+    import pandas as pd
+    df_summary = pd.DataFrame(summary_rows)
+
+    col_search, col_info2 = st.columns([3, 1])
     with col_search:
         search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_blud_search", placeholder="Ketik untuk filter...")
-    with col_info:
+    with col_info2:
         st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
 
     if search_q.strip():
-        files_filtered = [f for f in files if search_q.lower() in f.name.lower()]
+        mask     = df_summary["Nama File"].str.contains(search_q, case=False, na=False) | \
+                   df_summary["Tanggal Data"].str.contains(search_q, case=False, na=False)
+        df_shown = df_summary[mask].reset_index(drop=True)
     else:
-        files_filtered = files
+        df_shown = df_summary
 
-    PAGE_SIZE = 10
-    total_pages = max(1, (len(files_filtered) + PAGE_SIZE - 1) // PAGE_SIZE)
-    page_num    = st.session_state.get("hist_blud_page", 1)
-    page_num    = max(1, min(page_num, total_pages))
-
-    col_prev, col_page, col_next = st.columns([1, 3, 1])
-    with col_prev:
-        if st.button("◀ Sebelumnya", key="hist_blud_prev", disabled=(page_num <= 1)):
-            st.session_state["hist_blud_page"] = page_num - 1
-            st.rerun()
-    with col_page:
-        st.markdown(f'<div style="text-align:center;padding:8px;font-size:13px;color:#475569;">Halaman <b>{page_num}</b> dari <b>{total_pages}</b> &nbsp;·&nbsp; Menampilkan {len(files_filtered)} dari {len(files)} file</div>', unsafe_allow_html=True)
-    with col_next:
-        if st.button("Berikutnya ▶", key="hist_blud_next", disabled=(page_num >= total_pages)):
-            st.session_state["hist_blud_page"] = page_num + 1
-            st.rerun()
-
-    start_idx  = (page_num - 1) * PAGE_SIZE
-    files_page = files_filtered[start_idx : start_idx + PAGE_SIZE]
-
-    rows_html = ""
-    for i, f in enumerate(files_page):
-        info        = get_file_info(f)
-        bg          = "#ffffff" if i % 2 == 0 else "#f8fafc"
-        fname_short = f.name[:52] + "…" if len(f.name) > 52 else f.name
-        global_no   = start_idx + i + 1
-        rows_html += f"""
-        <tr style="background:{bg};">
-            <td style="padding:9px 12px;font-size:12px;color:#64748b;text-align:center;width:40px;">{global_no}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#0d1b2e;font-weight:500;" title="{f.name}">{fname_short}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;white-space:nowrap;">{info['tanggal_data']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:center;">{info['tahun_anggaran']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#16a34a;font-weight:600;text-align:center;white-space:nowrap;">{info['upload_time']}</td>
-            <td style="padding:9px 12px;font-size:12px;color:#475569;text-align:right;white-space:nowrap;">{info['size_kb']} KB</td>
-        </tr>"""
-
-    if not files_page:
-        rows_html = '<tr><td colspan="6" style="padding:24px;text-align:center;color:#94a3b8;font-size:13px;">Tidak ada file yang cocok.</td></tr>'
-
-    st.markdown(f"""
-    <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px;">
-        <table style="width:100%;border-collapse:collapse;">
-            <thead>
-                <tr style="background:#1e3a5f;">
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.7);text-align:center;width:40px;">#</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:left;letter-spacing:0.04em;">NAMA FILE</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TANGGAL DATA</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">TAHUN</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:center;letter-spacing:0.04em;">⏰ WAKTU UPLOAD</th>
-                    <th style="padding:10px 12px;font-size:10px;font-weight:700;color:rgba(255,255,255,0.85);text-align:right;letter-spacing:0.04em;">UKURAN</th>
-                </tr>
-            </thead>
-            <tbody>{rows_html}</tbody>
-        </table>
-    </div>
-    """, unsafe_allow_html=True)
+    st.dataframe(
+        df_shown,
+        use_container_width=True,
+        hide_index=True,
+        height=370,
+        column_config={
+            "#":            st.column_config.NumberColumn(width="small"),
+            "Nama File":    st.column_config.TextColumn(width="large"),
+            "Tanggal Data": st.column_config.TextColumn(width="medium"),
+            "Tahun":        st.column_config.TextColumn(width="small"),
+            "Waktu Upload": st.column_config.TextColumn(width="medium"),
+            "Ukuran":       st.column_config.TextColumn(width="small"),
+        }
+    )
 
     st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
