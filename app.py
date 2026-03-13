@@ -38,6 +38,50 @@ SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ───────────────────────────────────────────────
+#           CEK KEKUATAN PASSWORD
+# ───────────────────────────────────────────────
+
+def check_password_strength(password: str) -> dict:
+    """Cek kekuatan password dan kembalikan detail hasil pengecekan."""
+    has_upper   = bool(re.search(r"[A-Z]", password))
+    has_lower   = bool(re.search(r"[a-z]", password))
+    has_digit   = bool(re.search(r"\d", password))
+    has_special = bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password))
+    has_min_len = len(password) >= 8
+
+    score = sum([has_upper, has_lower, has_digit, has_special, has_min_len])
+
+    if score <= 2:
+        level = "Lemah"
+        color = "#e74c3c"
+        emoji = "🔴"
+    elif score == 3:
+        level = "Sedang"
+        color = "#f39c12"
+        emoji = "🟡"
+    elif score == 4:
+        level = "Kuat"
+        color = "#27ae60"
+        emoji = "🟢"
+    else:
+        level = "Sangat Kuat"
+        color = "#1abc9c"
+        emoji = "✅"
+
+    return {
+        "level":       level,
+        "color":       color,
+        "emoji":       emoji,
+        "score":       score,
+        "has_upper":   has_upper,
+        "has_lower":   has_lower,
+        "has_digit":   has_digit,
+        "has_special": has_special,
+        "has_min_len": has_min_len,
+        "is_strong":   score >= 4,
+    }
+
+# ───────────────────────────────────────────────
 #           SISTEM LOGIN + REGISTRASI + LUPA PASSWORD
 # ───────────────────────────────────────────────
 
@@ -59,7 +103,6 @@ def load_users():
         return {}
 
 def save_users(users):
-    # Tidak dipakai langsung, gunakan upsert per user
     pass
 
 def save_user(username, data):
@@ -108,7 +151,6 @@ def show_auth_page():
                 z-index: 1;
             }}
 
-            /* ── ANIMASI FADE IN ── */
             @keyframes fadeInDown {{
                 0%   {{ opacity: 0; transform: translateY(-30px); }}
                 100% {{ opacity: 1; transform: translateY(0); }}
@@ -122,14 +164,12 @@ def show_auth_page():
                 100% {{ opacity: 1; }}
             }}
 
-            /* Logo fade in dari atas */
             [data-testid="stImage"] img {{
                 animation: fadeInDown 1s ease forwards;
                 margin-bottom: -40px !important;
                 display: block;
             }}
 
-            /* Judul fade in */
             .block-container h1 {{
                 animation: fadeInDown 1.2s ease forwards;
                 font-weight: 900 !important;
@@ -137,17 +177,14 @@ def show_auth_page():
                 text-shadow: 2px 2px 4px rgba(0,0,0,0.9), -1px -1px 3px rgba(0,0,0,0.9) !important;
             }}
 
-            /* Tab fade in */
             .stTabs {{
                 animation: fadeIn 1.5s ease forwards;
             }}
 
-            /* Form fade in dari bawah */
             .block-container > div > div > div > div {{
                 animation: fadeInUp 1.4s ease forwards;
             }}
 
-            /* Teks umum */
             .block-container h2,
             .block-container h3 {{
                 font-weight: 900 !important;
@@ -162,20 +199,17 @@ def show_auth_page():
                 text-shadow: 1px 1px 3px rgba(0,0,0,0.9) !important;
             }}
 
-            /* Center konten login di tengah layar */
             .block-container {{
                 background: transparent !important;
                 padding-top: 10rem !important;
                 margin-top: 0 !important;
             }}
-            /* Input box lebih jelas */
             .stTextInput input {{
                 background: rgba(255,255,255,0.92) !important;
                 font-weight: 600 !important;
                 color: #111 !important;
                 border: 1.5px solid #ccc !important;
             }}
-            /* Tab text */
             .stTabs [data-baseweb="tab"] {{
                 font-weight: 700 !important;
                 text-shadow: 1px 1px 3px rgba(255,255,255,0.8) !important;
@@ -202,7 +236,6 @@ def show_auth_page():
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
-    # Cek query param untuk menentukan tab awal (default: login)
     query_params = st.query_params
     active_tab = query_params.get("tab", ["login"])[0].lower()
 
@@ -210,12 +243,13 @@ def show_auth_page():
 
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
+    # ─────────────────────────────────────────
+    #   TAB LOGIN
+    # ─────────────────────────────────────────
     with tab_login:
-        # Pesan setelah logout
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
 
-        # Bersihkan session registrasi tanpa menampilkan pesan
         if "just_registered" in st.session_state:
             st.session_state.pop("just_registered", None)
             st.session_state.pop("just_registered_username", None)
@@ -232,7 +266,7 @@ def show_auth_page():
             key="login_username_unique"
         )
         password = st.text_input("Password", type="password", key="login_password_unique")
-        
+
         remember_me = st.checkbox("Ingat saya di perangkat ini", value=bool(remembered_username))
 
         if st.button("Masuk", type="primary", use_container_width=True):
@@ -247,12 +281,11 @@ def show_auth_page():
                         cookies["remember_username"] = username
                     else:
                         cookies.pop("remember_username", None)
-                    
+
                     cookies.save()
 
                     nama = users[username].get("nama_lengkap", username)
 
-                    # ── LOADING SCREEN ──
                     import time
                     st.markdown(f"""
                         <style>
@@ -294,40 +327,142 @@ def show_auth_page():
             else:
                 st.error("**Username tidak ditemukan.** Pastikan sudah daftar.")
 
+    # ─────────────────────────────────────────
+    #   TAB REGISTER
+    # ─────────────────────────────────────────
     with tab_register:
         st.markdown("**Buat akun baru (data lengkap)**")
-        
+
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
+        # ── PASSWORD STRENGTH INDICATOR (di luar form agar live/real-time) ──
+        pw_preview = st.text_input(
+            "Password",
+            type="password",
+            key="reg_pw_preview",
+            help="Min. 8 karakter, huruf kapital, angka, dan karakter spesial"
+        )
+
+        if pw_preview:
+            strength = check_password_strength(pw_preview)
+            bar_pct  = int(strength["score"] / 5 * 100)
+
+            def badge(ok, label):
+                bg = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                mark = "✓" if ok else "✗"
+                return (
+                    f'<span style="background:{bg};color:white;padding:2px 8px;'
+                    f'border-radius:12px;font-size:12px;font-weight:700;">'
+                    f'{mark} {label}</span>'
+                )
+
+            badges_html = " ".join([
+                badge(strength["has_min_len"], "Min. 8 karakter"),
+                badge(strength["has_upper"],   "Huruf Kapital"),
+                badge(strength["has_lower"],   "Huruf Kecil"),
+                badge(strength["has_digit"],   "Angka (0-9)"),
+                badge(strength["has_special"], "Karakter Spesial (!@#$...)"),
+            ])
+
+            st.markdown(f"""
+                <div style="margin: -8px 0 12px 0;">
+                    <div style="
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 10px;
+                        height: 8px;
+                        width: 100%;
+                        margin-bottom: 6px;
+                    ">
+                        <div style="
+                            background: {strength['color']};
+                            width: {bar_pct}%;
+                            height: 8px;
+                            border-radius: 10px;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                    <p style="
+                        color: {strength['color']} !important;
+                        font-weight: 800 !important;
+                        font-size: 14px !important;
+                        margin: 0 0 6px 0;
+                        text-shadow: 1px 1px 3px rgba(0,0,0,0.7) !important;
+                    ">{strength['emoji']} Kekuatan Password: <b>{strength['level']}</b></p>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        {badges_html}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if not strength["is_strong"]:
+                st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah di atas.")
+        else:
+            # Tampilkan hint saat belum diisi
+            st.markdown("""
+                <div style="
+                    margin: -8px 0 12px 0;
+                    padding: 8px 12px;
+                    background: rgba(255,255,255,0.1);
+                    border-radius: 8px;
+                    border-left: 3px solid rgba(255,255,255,0.4);
+                ">
+                    <p style="
+                        color: rgba(255,255,255,0.85) !important;
+                        font-size: 13px !important;
+                        font-weight: 600 !important;
+                        margin: 0;
+                        text-shadow: 1px 1px 2px rgba(0,0,0,0.5) !important;
+                    ">
+                        💡 Password harus mengandung: huruf kapital, huruf kecil, angka, 
+                        karakter spesial (!@#$...), dan minimal 8 karakter.
+                    </p>
+                </div>
+            """, unsafe_allow_html=True)
+
+        # ── FORM REGISTRASI ──
         with st.form(key="register_form"):
             new_username     = st.text_input("Username (unik)", key="reg_username_unique")
-            
+
             new_password     = st.text_input(
-                "Password",
+                "Konfirmasi ulang Password",
                 type="password",
-                key="reg_password_unique"
+                key="reg_password_unique",
+                help="Ketik ulang password yang sama seperti di atas"
             )
-            
+
             confirm_password = st.text_input(
-                "Konfirmasi Password",
+                "Konfirmasi Password (sekali lagi)",
                 type="password",
                 key="reg_confirm_unique"
             )
-            
-            nama_lengkap     = st.text_input("Nama Lengkap", key="reg_nama_unique")
-            email            = st.text_input("Email", key="reg_email_unique")
-            tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900, 1, 1), max_value=datetime.now(), key="reg_tgl_lahir_unique")
-            no_hp            = st.text_input("Nomor HP / WA", key="reg_hp_unique")
+
+            nama_lengkap = st.text_input("Nama Lengkap", key="reg_nama_unique")
+            email        = st.text_input("Email", key="reg_email_unique")
+            tgl_lahir    = st.date_input(
+                "Tanggal Lahir",
+                min_value=datetime(1900, 1, 1),
+                max_value=datetime.now(),
+                key="reg_tgl_lahir_unique"
+            )
+            no_hp        = st.text_input("Nomor HP / WA", key="reg_hp_unique")
 
             submit_button = st.form_submit_button("Daftar Akun", type="primary", use_container_width=True)
 
             if submit_button:
                 error_msg = ""
+
                 if not new_username.strip():
                     error_msg = "Username harus diisi."
-                elif not new_password.strip() or len(new_password) < 6:
-                    error_msg = "Password minimal 6 karakter."
+                elif not pw_preview.strip():
+                    error_msg = "Password harus diisi."
+                elif not check_password_strength(pw_preview)["is_strong"]:
+                    error_msg = (
+                        "Password tidak cukup kuat! Harus mengandung huruf kapital, "
+                        "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
+                    )
+                elif new_password != pw_preview:
+                    error_msg = "Konfirmasi ulang password tidak cocok dengan password yang diisi di atas."
                 elif new_password != confirm_password:
                     error_msg = "Konfirmasi password tidak cocok."
                 elif not nama_lengkap.strip():
@@ -346,17 +481,16 @@ def show_auth_page():
                         st.session_state["register_error"] = f"**Registrasi gagal:** Username '{new_username}' sudah digunakan."
                         st.rerun()
                     else:
-                        hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                        hashed = bcrypt.hashpw(pw_preview.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                         new_user_data = {
-                            "password": hashed,
+                            "password":    hashed,
                             "nama_lengkap": nama_lengkap.strip(),
-                            "email": email.strip(),
-                            "tgl_lahir": str(tgl_lahir),
-                            "no_hp": no_hp.strip()
+                            "email":       email.strip(),
+                            "tgl_lahir":   str(tgl_lahir),
+                            "no_hp":       no_hp.strip()
                         }
                         save_user(new_username, new_user_data)
 
-                        # ── NOTIFIKASI REGISTRASI BERHASIL ──
                         import time
                         st.markdown(f"""
                             <style>
@@ -407,9 +541,12 @@ def show_auth_page():
                         st.query_params["tab"] = "login"
                         st.rerun()
 
+    # ─────────────────────────────────────────
+    #   TAB RESET PASSWORD
+    # ─────────────────────────────────────────
     with tab_reset:
         st.markdown("**Lupa Password? Reset di sini** (verifikasi nomor HP diperlukan)")
-        
+
         if st.session_state.get("reset_success"):
             msg = st.session_state.pop("reset_success")
             st.success(msg)
@@ -417,10 +554,71 @@ def show_auth_page():
             msg = st.session_state.pop("reset_error")
             st.error(msg)
 
+        # ── PASSWORD STRENGTH INDICATOR UNTUK RESET ──
+        reset_pw_preview = st.text_input(
+            "Password Baru",
+            type="password",
+            key="reset_pw_preview",
+            help="Min. 8 karakter, huruf kapital, angka, dan karakter spesial"
+        )
+
+        if reset_pw_preview:
+            strength_r = check_password_strength(reset_pw_preview)
+            bar_pct_r  = int(strength_r["score"] / 5 * 100)
+
+            def badge_r(ok, label):
+                bg   = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                mark = "✓" if ok else "✗"
+                return (
+                    f'<span style="background:{bg};color:white;padding:2px 8px;'
+                    f'border-radius:12px;font-size:12px;font-weight:700;">'
+                    f'{mark} {label}</span>'
+                )
+
+            badges_html_r = " ".join([
+                badge_r(strength_r["has_min_len"], "Min. 8 karakter"),
+                badge_r(strength_r["has_upper"],   "Huruf Kapital"),
+                badge_r(strength_r["has_lower"],   "Huruf Kecil"),
+                badge_r(strength_r["has_digit"],   "Angka (0-9)"),
+                badge_r(strength_r["has_special"], "Karakter Spesial (!@#$...)"),
+            ])
+
+            st.markdown(f"""
+                <div style="margin: -8px 0 12px 0;">
+                    <div style="
+                        background: rgba(255,255,255,0.2);
+                        border-radius: 10px;
+                        height: 8px;
+                        width: 100%;
+                        margin-bottom: 6px;
+                    ">
+                        <div style="
+                            background: {strength_r['color']};
+                            width: {bar_pct_r}%;
+                            height: 8px;
+                            border-radius: 10px;
+                            transition: width 0.3s ease;
+                        "></div>
+                    </div>
+                    <p style="
+                        color: {strength_r['color']} !important;
+                        font-weight: 800 !important;
+                        font-size: 14px !important;
+                        margin: 0 0 6px 0;
+                        text-shadow: 1px 1px 3px rgba(0,0,0,0.7) !important;
+                    ">{strength_r['emoji']} Kekuatan Password: <b>{strength_r['level']}</b></p>
+                    <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                        {badges_html_r}
+                    </div>
+                </div>
+            """, unsafe_allow_html=True)
+
+            if not strength_r["is_strong"]:
+                st.warning("⚠️ Password baru belum cukup kuat! Lengkapi kriteria yang masih merah.")
+
         with st.form(key="reset_form"):
             reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
             reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
-            new_password_reset     = st.text_input("Password Baru", type="password", key="reset_password_unique")
             confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
 
             reset_button = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
@@ -431,9 +629,14 @@ def show_auth_page():
                     error_msg = "Username harus diisi."
                 elif not reset_no_hp.strip():
                     error_msg = "Nomor HP harus diisi untuk verifikasi."
-                elif not new_password_reset.strip() or len(new_password_reset) < 6:
-                    error_msg = "Password baru minimal 6 karakter."
-                elif new_password_reset != confirm_password_reset:
+                elif not reset_pw_preview.strip():
+                    error_msg = "Password baru harus diisi."
+                elif not check_password_strength(reset_pw_preview)["is_strong"]:
+                    error_msg = (
+                        "Password baru tidak cukup kuat! Harus mengandung huruf kapital, "
+                        "huruf kecil, angka, dan karakter spesial (!@#$...), minimal 8 karakter."
+                    )
+                elif reset_pw_preview != confirm_password_reset:
                     error_msg = "Konfirmasi password baru tidak cocok."
 
                 if error_msg:
@@ -448,7 +651,7 @@ def show_auth_page():
                         st.session_state["reset_error"] = "**Nomor HP tidak sesuai dengan akun ini.**"
                         st.rerun()
                     else:
-                        hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+                        hashed = bcrypt.hashpw(reset_pw_preview.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                         users[reset_username]["password"] = hashed
                         save_user(reset_username, users[reset_username])
                         st.session_state["reset_success"] = f"**Password berhasil direset!** Untuk akun '{reset_username}'. Silakan login 🎉"
@@ -472,7 +675,6 @@ if not st.session_state["logged_in"]:
 # ───────────────────────────────────────────────
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
-
 
 # ── LOGO DI SIDEBAR ──
 try:
@@ -508,7 +710,6 @@ if st.sidebar.button("Logout", type="secondary"):
 
 st.sidebar.markdown("---")
 
-# Inisialisasi tahun anggaran terpisah
 if "tahun_non_blud" not in st.session_state:
     st.session_state["tahun_non_blud"] = 2026
 
@@ -521,7 +722,6 @@ if "tahun_anggaran" not in st.session_state:
 if "tanggal_impor" not in st.session_state:
     st.session_state["tanggal_impor"] = datetime.now().strftime("%d/%m/%Y")
 
-# Direktori history
 HISTORY_DIR_NON_BLUD = "history_non_blud"
 HISTORY_DIR_BLUD     = "history_blud"
 Path(HISTORY_DIR_NON_BLUD).mkdir(exist_ok=True)
@@ -614,12 +814,6 @@ def get_file_info(filepath) -> dict:
 
     name  = p.stem
     lower = name.lower()
-
-    def ymd_to_dmy(ymd: str) -> str:
-        try:
-            return datetime.strptime(ymd, "%Y%m%d").strftime("%d/%m/%Y")
-        except:
-            return "–"
 
     m = re.match(r"^(blud|nonblud|non-blud)_(\d{2}-\d{2}-\d{4})_ta(\d{4})_(\d{8})_(\d{6})$", lower)
     if m:
@@ -822,20 +1016,15 @@ if "Upload Data" in menu:
                 "KREDIT MURNI TA":     "ANGGARAN",
                 "KREDIT MURNI TA 2026":"ANGGARAN",
                 "KREDIT MURNI TA2026": "ANGGARAN",
-                "KREDIT MURNI":        "ANGGARAN",
-
                 "JUMLAH":              "REALISASI",
                 "REALISASI RILL":      "REALISASI",
                 "REALISASI":           "REALISASI",
-
                 "%":                   "PROSENTASE",
                 "% BELANJA":           "PROSENTASE",
                 "PROSENTASE":          "PROSENTASE",
-
                 "NAMA SKPD":           "NAMA SKPD",
                 "SKPD":                "SKPD",
                 "KODE SKPD":           "KODE SKPD",
-
                 "SP2D GAJI":           "SP2D GAJI",
                 "SP2D LS":             "SP2D LS",
                 "RINCIAN GU/TU":       "RINCIAN GU/TU",
@@ -1168,11 +1357,11 @@ elif "Dashboard Gabungan" in menu:
     tgl = st.session_state.get("tanggal_impor", datetime.now().strftime("%d/%m/%Y"))
     st.caption(f"Data per tanggal: **{tgl}** | Tahun Anggaran: **{st.session_state.get('tahun_anggaran', '–')}**")
 
-    ang_all  = float(df_non["ANGGARAN"].sum())
-    real_non = float(df_non["REALISASI"].sum())
+    ang_all   = float(df_non["ANGGARAN"].sum())
+    real_non  = float(df_non["REALISASI"].sum())
     real_blud = float(df_blud["REALISASI"].sum())
-    real_all = real_non + real_blud
-    pct_all  = (real_all / ang_all * 100) if ang_all > 0 else 0
+    real_all  = real_non + real_blud
+    pct_all   = (real_all / ang_all * 100) if ang_all > 0 else 0
 
     k1, k2, k3 = st.columns(3)
     k1.metric("Total Anggaran (Non-BLUD)", rupiah(ang_all))
