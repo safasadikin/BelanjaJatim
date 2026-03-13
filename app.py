@@ -513,15 +513,38 @@ def get_file_info(filepath):
     modified_dt   = datetime.fromtimestamp(stat.st_mtime)
     modified_time = modified_dt.strftime("%d/%m/%Y %H:%M:%S")
     size_kb = round(stat.st_size / 1024, 1)
-    name  = p.stem; lower = name.lower()
-    m = re.match(r"^(blud|nonblud|non-blud)_(\d{2}-\d{2}-\d{4})_ta(\d{4})_(\d{8})_(\d{6})$", lower)
+    name  = p.stem
+    # Format: non-blud_DD-MM-YYYY_TAYYYY_YYYYMMDD_HHMMSS  atau  blud_...
+    # Coba berbagai variasi prefix
+    m = re.match(
+        r"^(blud|non-blud|non_blud|nonblud)_"   # prefix
+        r"(\d{2}-\d{2}-\d{4})_"                  # tanggal data
+        r"ta(\d{4})_"                             # tahun anggaran
+        r"(\d{8})_(\d{6})$",                      # timestamp upload
+        name.lower()
+    )
     if m:
         tanggal_data   = m.group(2).replace("-", "/")
         tahun_anggaran = m.group(3)
-        try:    upload_time = datetime.strptime(m.group(4)+m.group(5), "%Y%m%d%H%M%S").strftime("%d/%m/%Y %H:%M:%S")
-        except: upload_time = modified_time
-        return {"tanggal_data": tanggal_data, "tahun_anggaran": tahun_anggaran, "upload_time": upload_time, "modified_time": modified_time, "size_kb": size_kb}
-    return {"tanggal_data": "–", "tahun_anggaran": "–", "upload_time": modified_time, "modified_time": modified_time, "size_kb": size_kb}
+        try:
+            upload_time = datetime.strptime(m.group(4) + m.group(5), "%Y%m%d%H%M%S").strftime("%d/%m/%Y %H:%M:%S")
+        except:
+            upload_time = modified_time
+        return {
+            "tanggal_data":   tanggal_data,
+            "tahun_anggaran": tahun_anggaran,
+            "upload_time":    upload_time,
+            "modified_time":  modified_time,
+            "size_kb":        size_kb,
+        }
+    # Fallback: baca dari nama file apa adanya
+    return {
+        "tanggal_data":   "–",
+        "tahun_anggaran": "–",
+        "upload_time":    modified_time,
+        "modified_time":  modified_time,
+        "size_kb":        size_kb,
+    }
 
 # ───────────────────────────────────────────────
 #           PDF REPORT
@@ -587,15 +610,14 @@ st.sidebar.markdown("""
 """, unsafe_allow_html=True)
 
 # ── Navigasi programatik ke History via session_state ──
-if "navigate_to" in st.session_state:
-    nav_target = st.session_state.pop("navigate_to")
-    # nav_target adalah salah satu dari menu_options
-    if nav_target in menu_options:
-        default_idx = menu_options.index(nav_target)
-    else:
-        default_idx = 0
+_nav = st.session_state.pop("navigate_to", None)
+if _nav and _nav in menu_options:
+    default_idx = menu_options.index(_nav)
 else:
-    default_idx = 0
+    default_idx = st.session_state.get("_menu_idx", 0)
+    # Jaga agar default_idx valid
+    if default_idx >= len(menu_options):
+        default_idx = 0
 
 menu = st.sidebar.radio(
     "Menu",
@@ -612,6 +634,8 @@ menu = st.sidebar.radio(
     }.get(x, x),
     label_visibility="collapsed"
 )
+# Simpan index pilihan saat ini
+st.session_state["_menu_idx"] = menu_options.index(menu)
 
 # ── USER & LOGOUT ──
 st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
@@ -754,9 +778,6 @@ if "Upload Data" in menu:
 
     uploaded = st.file_uploader("Pilih file .xlsx", type="xlsx", label_visibility="collapsed")
 
-    # ── TAHUN ANGGARAN (hanya number_input kecil, tanpa dropdown) ──
-    # (dropdown dihapus, tahun diset otomatis dari session_state)
-
     if uploaded:
         try:
             filename   = uploaded.name
@@ -807,6 +828,7 @@ if "Upload Data" in menu:
             else:
                 st.session_state["df_blud"] = df.copy()
 
+            # Simpan ke history dengan timestamp akurat saat ini
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
             st.success("✅ Data berhasil diimport & disimpan ke history!")
 
@@ -839,18 +861,22 @@ if "Upload Data" in menu:
         """, unsafe_allow_html=True)
 
         for hf in history_files[:5]:
-            info     = get_file_info(hf)
-            fname    = hf.name
-            size_str = f"{info['size_kb']} KB"
-            tgl_str  = info.get("tanggal_data", "–")
-            is_last  = (hf == history_files[:5][-1])
-            border   = "none" if is_last else "0.5px solid #f1f5f9"
+            info      = get_file_info(hf)
+            fname     = hf.name
+            size_str  = f"{info['size_kb']} KB"
+            tgl_str   = info.get("tanggal_data", "–")
+            # Tampilkan waktu upload real-time dari timestamp di nama file
+            upload_str = info.get("upload_time", info.get("modified_time", "–"))
+            is_last   = (hf == history_files[:5][-1])
+            border    = "none" if is_last else "0.5px solid #f1f5f9"
             st.markdown(f"""
             <div style="background:white;border-left:0.5px solid #e2e8f0;border-right:0.5px solid #e2e8f0;{'border-bottom:0.5px solid #e2e8f0;border-radius:0 0 12px 12px;' if is_last else ''}padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:{border};">
                 <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📗</div>
                 <div style="flex:1;min-width:0;">
                     <div style="color:#0d1b2e;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
-                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;">{tgl_str} · {size_str}</div>
+                    <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
+                        Data: <b>{tgl_str}</b> &nbsp;·&nbsp; Diupload: <b>{upload_str}</b> &nbsp;·&nbsp; {size_str}
+                    </div>
                 </div>
                 <div style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#16a34a;border:0.5px solid #bbf7d0;flex-shrink:0;">Tersimpan</div>
             </div>
