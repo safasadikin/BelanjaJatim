@@ -643,39 +643,250 @@ if not st.session_state["logged_in"]:
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 
-# ── LOGO DI SIDEBAR ──
+# ── GLOBAL CSS – TAMPILAN PROFESIONAL ──
+st.markdown("""
+<style>
+/* ── BACKGROUND HALAMAN UTAMA ── */
+[data-testid="stAppViewContainer"] > .main {
+    background: #f0f4f9;
+}
+[data-testid="stAppViewContainer"] > .main .block-container {
+    padding-top: 1.5rem;
+    padding-bottom: 2rem;
+}
+
+/* ── SIDEBAR GELAP ── */
+[data-testid="stSidebar"] {
+    background: #0d1b2e !important;
+    border-right: none !important;
+}
+[data-testid="stSidebar"] > div:first-child {
+    padding-top: 0 !important;
+}
+
+/* Sembunyikan elemen bawaan Streamlit di sidebar */
+[data-testid="stSidebar"] [data-testid="stMarkdownContainer"] p,
+[data-testid="stSidebar"] label,
+[data-testid="stSidebar"] .stRadio > label {
+    color: rgba(255,255,255,0.55) !important;
+    font-size: 12px !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] > div {
+    gap: 2px !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label {
+    color: rgba(255,255,255,0.55) !important;
+    font-size: 12px !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
+    transition: all 0.15s !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover {
+    background: rgba(255,255,255,0.06) !important;
+    color: rgba(255,255,255,0.85) !important;
+}
+[data-testid="stSidebar"] [data-testid="stRadio"] [aria-checked="true"] + div label,
+[data-testid="stSidebar"] [data-testid="stRadio"] input:checked ~ div label {
+    background: rgba(37,99,235,0.25) !important;
+    color: #93b4f8 !important;
+}
+[data-testid="stSidebar"] hr {
+    border-color: rgba(255,255,255,0.08) !important;
+}
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 {
+    color: rgba(255,255,255,0.85) !important;
+    font-size: 14px !important;
+}
+
+/* ── TOMBOL SIDEBAR ── */
+[data-testid="stSidebar"] .stButton > button {
+    background: transparent !important;
+    border: 0.5px solid rgba(255,255,255,0.15) !important;
+    color: rgba(255,255,255,0.5) !important;
+    font-size: 11px !important;
+    border-radius: 8px !important;
+    width: 100% !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    border-color: rgba(255,99,99,0.5) !important;
+    color: #f87171 !important;
+    background: rgba(255,99,99,0.08) !important;
+}
+
+/* ── KARTU KONTEN UTAMA ── */
+.pro-card {
+    background: white;
+    border: 0.5px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-bottom: 16px;
+}
+.pro-card-header {
+    padding: 14px 20px;
+    border-bottom: 0.5px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+.pro-card-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #0d1b2e;
+}
+.pro-card-body {
+    padding: 20px;
+}
+
+/* ── STAT CARDS ── */
+.stat-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin-bottom: 20px;
+}
+.stat-card {
+    background: white;
+    border: 0.5px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 16px 18px;
+    position: relative;
+    overflow: hidden;
+}
+.stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    border-radius: 12px 12px 0 0;
+}
+.stat-card.blue::before  { background: #2563eb; }
+.stat-card.green::before { background: #16a34a; }
+.stat-card.amber::before { background: #d97706; }
+.stat-icon   { font-size: 20px; margin-bottom: 10px; display: block; }
+.stat-label  { font-size: 10px; color: #94a3b8; margin-bottom: 4px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; }
+.stat-val    { font-size: 22px; font-weight: 600; color: #0d1b2e; line-height: 1.2; }
+.stat-sub    { font-size: 11px; color: #16a34a; margin-top: 4px; }
+.stat-sub.warn { color: #d97706; }
+
+/* ── BREADCRUMB / PAGE HEADER ── */
+.page-topbar {
+    background: white;
+    border: 0.5px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+.breadcrumb-trail {
+    font-size: 12px;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.breadcrumb-trail .current {
+    color: #0d1b2e;
+    font-weight: 600;
+}
+.tipe-badge {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 14px;
+    border-radius: 20px;
+}
+.tipe-badge.non-blud { background: #eff6ff; color: #2563eb; border: 0.5px solid #bfdbfe; }
+.tipe-badge.blud     { background: #f0fdf4; color: #16a34a; border: 0.5px solid #bbf7d0; }
+.tipe-badge.gabungan { background: #fff7ed; color: #d97706; border: 0.5px solid #fed7aa; }
+
+/* ── DROP ZONE UPLOAD ── */
+.drop-zone-pro {
+    border: 1.5px dashed #c7d7f0;
+    border-radius: 12px;
+    background: #f8faff;
+    padding: 32px 20px;
+    text-align: center;
+    transition: all 0.2s;
+    cursor: pointer;
+}
+.drop-zone-pro:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+}
+.drop-zone-icon  { font-size: 36px; margin-bottom: 10px; }
+.drop-zone-title { font-size: 15px; font-weight: 600; color: #0d1b2e; margin-bottom: 4px; }
+.drop-zone-sub   { font-size: 12px; color: #94a3b8; }
+
+/* ── PAGE TITLE ── */
+.page-title-pro {
+    font-size: 22px;
+    font-weight: 700;
+    color: #0d1b2e;
+    margin-bottom: 2px;
+}
+.page-subtitle-pro {
+    font-size: 13px;
+    color: #94a3b8;
+    margin-bottom: 20px;
+}
+
+/* ── HISTORY ITEM ── */
+.history-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 12px 20px;
+    border-bottom: 0.5px solid #f1f5f9;
+    font-size: 13px;
+}
+.history-row:last-child { border-bottom: none; }
+.history-file-icon {
+    width: 32px; height: 32px;
+    border-radius: 8px;
+    background: #eff6ff;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; flex-shrink: 0;
+}
+.history-file-name { color: #0d1b2e; font-weight: 500; }
+.history-file-meta { font-size: 11px; color: #94a3b8; margin-top: 1px; }
+.history-tag {
+    font-size: 10px; font-weight: 600; padding: 3px 10px;
+    border-radius: 20px; background: #f0fdf4; color: #16a34a;
+    border: 0.5px solid #bbf7d0; margin-left: auto; flex-shrink: 0;
+}
+</style>
+""", unsafe_allow_html=True)
+
+# ── SIDEBAR PROFESIONAL ──
+import base64
+
+current_user = st.session_state.get('current_user', 'User')
+user_initial = current_user[0].upper() if current_user else 'U'
+
+logo_html = ""
 try:
-    import base64
     with open("Logo Provinsi Jawa Timur.png", "rb") as f:
         logo_b64 = base64.b64encode(f.read()).decode()
-    st.sidebar.markdown(f"""
-        <style>
-        [data-testid="stSidebar"] > div:first-child {{
-            padding-top: 0px !important;
-        }}
-        </style>
-        <div style="display: flex; align-items: center; gap: 12px; margin-top: -75px; margin-bottom: 8px;">
-            <img src="data:image/png;base64,{logo_b64}" width="85" style="min-width:85px; image-rendering: high-quality;">
-            <div style="font-size: 15px; font-weight: 900; color: #1a1a1a; line-height: 1.7;">
-                BPKAD Provinsi<br>Jawa Timur
-            </div>
-        </div>
-    """, unsafe_allow_html=True)
+    logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="32" style="border-radius:8px;flex-shrink:0;">'
 except FileNotFoundError:
-    pass
+    logo_html = '<div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📊</div>'
 
-st.sidebar.markdown(f"**Pengguna aktif:** {st.session_state.get('current_user', 'User')} 👤")
+st.sidebar.markdown(f"""
+<div style="padding:18px 16px 14px;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+    {logo_html}
+    <div>
+        <div style="font-size:13px;font-weight:700;color:rgba(255,255,255,0.92);line-height:1.3;">BPKAD Jatim</div>
+        <div style="font-size:10px;color:rgba(255,255,255,0.38);margin-top:1px;">Realisasi Belanja</div>
+    </div>
+</div>
 
-if st.sidebar.button("Logout", type="secondary"):
-    st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
-    st.session_state["logged_in"] = False
-    for key in list(st.session_state.keys()):
-        if key not in ["logged_in", "logout_message"]:
-            del st.session_state[key]
-    st.query_params.clear()
-    st.rerun()
-
-st.sidebar.markdown("---")
+<div style="padding:8px 16px 4px;">
+    <div style="font-size:9px;font-weight:600;letter-spacing:0.1em;color:rgba(255,255,255,0.28);text-transform:uppercase;margin-bottom:6px;">Tipe Data</div>
+</div>
+""", unsafe_allow_html=True)
 
 if "tahun_non_blud" not in st.session_state:
     st.session_state["tahun_non_blud"] = 2026
@@ -907,8 +1118,15 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
 #           SIDEBAR
 # ───────────────────────────────────────────────
 
-st.sidebar.title("📊 Realisasi Belanja Jatim")
-tipe_data = st.sidebar.radio("Tipe Data", ["Non-BLUD", "BLUD", "Gabungan"])
+tipe_data = st.sidebar.radio(
+    "Tipe Data",
+    ["Non-BLUD", "BLUD", "Gabungan"],
+    format_func=lambda x: {
+        "Non-BLUD": "🔴  Non-BLUD",
+        "BLUD":     "🔵  BLUD",
+        "Gabungan": "🟢  Gabungan",
+    }[x]
+)
 
 if tipe_data == "Non-BLUD":
     menu_options = ["Upload Data (Non-BLUD)", "Dashboard (Non-BLUD)", "History (Non-BLUD)"]
@@ -917,12 +1135,54 @@ elif tipe_data == "BLUD":
 else:
     menu_options = ["Upload Data (Non-BLUD)", "Upload Data (BLUD)", "Dashboard Gabungan"]
 
-menu = st.sidebar.radio("Menu", menu_options)
+st.sidebar.markdown("""
+<div style="padding:14px 16px 4px;">
+    <div style="font-size:9px;font-weight:600;letter-spacing:0.1em;color:rgba(255,255,255,0.28);text-transform:uppercase;margin-bottom:6px;">Menu</div>
+</div>
+""", unsafe_allow_html=True)
 
-st.sidebar.markdown("---")
-if st.sidebar.button("Clear Cache & Rerun (Debug)"):
-    st.cache_data.clear()
+menu = st.sidebar.radio(
+    "Menu",
+    menu_options,
+    format_func=lambda x: {
+        "Upload Data (Non-BLUD)": "⬆  Upload Data",
+        "Upload Data (BLUD)":     "⬆  Upload Data",
+        "Dashboard (Non-BLUD)":   "📊  Dashboard",
+        "Dashboard (BLUD)":       "📊  Dashboard",
+        "History (Non-BLUD)":     "📁  History",
+        "History (BLUD)":         "📁  History",
+        "Dashboard Gabungan":     "📊  Dashboard Gabungan",
+    }.get(x, x),
+    label_visibility="collapsed"
+)
+
+# ── USER & LOGOUT ──
+st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
+st.sidebar.markdown(f"""
+<div style="padding:10px 16px 8px;border-top:0.5px solid rgba(255,255,255,0.07);margin-top:12px;">
+    <div style="display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;">{user_initial}</div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{current_user}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
+
+if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
+    st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
+    st.session_state["logged_in"] = False
+    for key in list(st.session_state.keys()):
+        if key not in ["logged_in", "logout_message"]:
+            del st.session_state[key]
+    st.query_params.clear()
     st.rerun()
+
+with st.sidebar.expander("⚙ Developer Tools", expanded=False):
+    if st.button("Clear Cache & Rerun", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 
 # ───────────────────────────────────────────────
 #           UPLOAD DATA
@@ -930,17 +1190,95 @@ if st.sidebar.button("Clear Cache & Rerun (Debug)"):
 
 if "Upload Data" in menu:
     tipe_upload = "Non-BLUD" if "Non-BLUD" in menu else "BLUD"
+    tipe_class  = "non-blud" if tipe_upload == "Non-BLUD" else "blud"
+    tipe_icon   = "🔴" if tipe_upload == "Non-BLUD" else "🔵"
 
-    st.title(f"Upload Data Realisasi Belanja ({tipe_upload})")
-    uploaded = st.file_uploader("Pilih file .xlsx", type="xlsx")
+    # ── TOPBAR BREADCRUMB ──
+    tanggal_now = datetime.now().strftime("%d %b %Y")
+    st.markdown(f"""
+    <div class="page-topbar">
+        <div class="breadcrumb-trail">
+            <span>{tipe_upload}</span>
+            <span style="opacity:0.4">›</span>
+            <span class="current">Upload Data</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:11px;color:#94a3b8;background:#f8fafc;border:0.5px solid #e2e8f0;padding:4px 12px;border-radius:20px;">📅 {tanggal_now}</span>
+            <span class="tipe-badge {tipe_class}">{tipe_icon} {tipe_upload}</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
-    st.session_state["tahun_anggaran"] = int(
-        st.number_input(
-            "Tahun Anggaran (untuk penamaan history & PDF)",
-            min_value=2000, max_value=2100,
-            value=int(st.session_state["tahun_anggaran"])
+    # ── PAGE TITLE ──
+    st.markdown(f"""
+    <div class="page-title-pro">Upload Data Realisasi Belanja</div>
+    <div class="page-subtitle-pro">Import file Excel untuk memperbarui data realisasi {tipe_upload} Jawa Timur</div>
+    """, unsafe_allow_html=True)
+
+    # ── STAT CARDS ──
+    history_dir = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
+    history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
+    jumlah_file   = len(history_files)
+    if history_files:
+        last_modified = datetime.fromtimestamp(history_files[0].stat().st_mtime).strftime("%d %b %Y")
+        from datetime import date as _date
+        last_dt   = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
+        selisih   = (_date.today() - last_dt).days
+        last_sub  = f"{selisih} hari lalu" if selisih > 0 else "Hari ini"
+        last_class = "warn" if selisih > 7 else ""
+    else:
+        last_modified = "Belum ada"
+        last_sub      = "–"
+        last_class    = "warn"
+
+    tahun_aktif = int(st.session_state.get("tahun_anggaran", 2026))
+
+    st.markdown(f"""
+    <div class="stat-grid">
+        <div class="stat-card blue">
+            <span class="stat-icon">📅</span>
+            <div class="stat-label">Tahun Anggaran</div>
+            <div class="stat-val">{tahun_aktif}</div>
+            <div class="stat-sub">Aktif saat ini</div>
+        </div>
+        <div class="stat-card green">
+            <span class="stat-icon">📁</span>
+            <div class="stat-label">File Tersimpan</div>
+            <div class="stat-val">{jumlah_file}</div>
+            <div class="stat-sub">Total di history</div>
+        </div>
+        <div class="stat-card amber">
+            <span class="stat-icon">⏱</span>
+            <div class="stat-label">Upload Terakhir</div>
+            <div class="stat-val" style="font-size:15px;margin-top:4px;">{last_modified}</div>
+            <div class="stat-sub {last_class}">{last_sub}</div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── UPLOAD CARD ──
+    st.markdown("""
+    <div class="pro-card">
+        <div class="pro-card-header">
+            <span class="pro-card-title">📂 Import File Excel</span>
+            <span style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#eff6ff;color:#2563eb;border:0.5px solid #bfdbfe;">Langkah 1 dari 2</span>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    uploaded = st.file_uploader("Pilih file .xlsx", type="xlsx", label_visibility="collapsed")
+
+    # ── TAHUN ANGGARAN ──
+    col_tahun, col_void = st.columns([1, 2])
+    with col_tahun:
+        st.session_state["tahun_anggaran"] = int(
+            st.number_input(
+                "📋 Tahun Anggaran",
+                min_value=2000, max_value=2100,
+                value=int(st.session_state["tahun_anggaran"]),
+                help="Digunakan untuk penamaan file history & laporan PDF"
+            )
         )
-    )
 
     if uploaded:
         try:
@@ -1024,9 +1362,15 @@ if "Upload Data" in menu:
                 st.session_state["df_blud"] = df.copy()
 
             saved_path = save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
-            st.success(f"✅ Data disimpan ke history: `{saved_path}`")
+            st.success(f"✅ Data berhasil diimport & disimpan ke history!")
 
-            st.subheader("Preview Data (Upload)")
+            st.markdown("""
+            <div class="pro-card" style="margin-top:20px;">
+                <div class="pro-card-header">
+                    <span class="pro-card-title">🔍 Preview Data</span>
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
             fmt_map = {}
             for col in ["ANGGARAN", "REALISASI", "SP2D GAJI", "SP2D LS", "RINCIAN GU/TU", "KOREKSI", "SISA KREDIT"]:
                 if col in df.columns:
@@ -1038,6 +1382,34 @@ if "Upload Data" in menu:
 
         except Exception as e:
             st.error(f"Upload gagal: {str(e)}")
+
+    # ── HISTORY TERBARU (selalu tampil di bawah) ──
+    if history_files:
+        rows_html = ""
+        for f in history_files[:5]:
+            info     = get_file_info(f)
+            fname    = f.name
+            size_str = f"{info['size_kb']} KB"
+            tgl_str  = info.get("tanggal_data", "–")
+            rows_html += f"""
+            <div class="history-row">
+                <div class="history-file-icon">📗</div>
+                <div style="flex:1;min-width:0;">
+                    <div class="history-file-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
+                    <div class="history-file-meta">{tgl_str} · {size_str}</div>
+                </div>
+                <div class="history-tag">Tersimpan</div>
+            </div>
+            """
+        st.markdown(f"""
+        <div class="pro-card" style="margin-top:8px;">
+            <div class="pro-card-header">
+                <span class="pro-card-title">🕒 Upload Terbaru</span>
+                <span style="font-size:11px;color:#2563eb;cursor:pointer;">Lihat semua di menu History →</span>
+            </div>
+            {rows_html}
+        </div>
+        """, unsafe_allow_html=True)
 
 # ───────────────────────────────────────────────
 #           DASHBOARD NON-BLUD
