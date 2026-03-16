@@ -557,7 +557,7 @@ def get_file_info(filepath):
     if not upload_time and m:
         ts_raw = m.group(4) + m.group(5)
         try:
-            upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S")
+            upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S") + timedelta(hours=7)
             upload_time = upload_dt.strftime("%d/%m/%Y %H:%M:%S")
         except ValueError:
             pass
