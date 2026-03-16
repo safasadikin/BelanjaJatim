@@ -1267,55 +1267,6 @@ elif "History (Non-BLUD)" in menu:
     if not files:
         st.info("Belum ada history upload Non-BLUD."); st.stop()
 
-    st.subheader("📋 Daftar File History")
-
-    # ── Buat DataFrame ringkasan untuk tabel scrollable ──
-    summary_rows = []
-    for i, f in enumerate(files):
-        info = get_file_info(f)
-        summary_rows.append({
-            "#":             i + 1,
-            "Nama File":     f.name,
-            "Tanggal Data":  info["tanggal_data"],
-            "Tahun":         info["tahun_anggaran"],
-            "Waktu Upload":  info["upload_time"],
-            "Ukuran":        f"{info['size_kb']} KB",
-        })
-
-    import pandas as pd
-    df_summary = pd.DataFrame(summary_rows)
-
-    # Filter / search
-    col_search, col_info2 = st.columns([3, 1])
-    with col_search:
-        search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_non_search", placeholder="Ketik untuk filter...")
-    with col_info2:
-        st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
-
-    if search_q.strip():
-        mask       = df_summary["Nama File"].str.contains(search_q, case=False, na=False) | \
-                     df_summary["Tanggal Data"].str.contains(search_q, case=False, na=False)
-        df_shown   = df_summary[mask].reset_index(drop=True)
-    else:
-        df_shown   = df_summary
-
-    # Tabel scrollable — tinggi terbatas, tidak melebar ke bawah tanpa batas
-    st.dataframe(
-        df_shown,
-        use_container_width=True,
-        hide_index=True,
-        height=370,           # ~10 baris, lalu scroll
-        column_config={
-            "#":            st.column_config.NumberColumn(width="small"),
-            "Nama File":    st.column_config.TextColumn(width="large"),
-            "Tanggal Data": st.column_config.TextColumn(width="medium"),
-            "Tahun":        st.column_config.TextColumn(width="small"),
-            "Waktu Upload": st.column_config.TextColumn(width="medium"),
-            "Ukuran":       st.column_config.TextColumn(width="small"),
-        }
-    )
-
-    st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
     selected      = st.selectbox("Pilih file history:", [f.name for f in files], key="hist_non_select_final")
     selected_path = next(f for f in files if f.name == selected)
@@ -1324,22 +1275,24 @@ elif "History (Non-BLUD)" in menu:
 
     # ── Info card detail ──
     st.markdown(f"""
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #2563eb;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #7c3aed;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📦 Ukuran File</div>
+            <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
         </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #16a34a;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #16a34a;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📅 Tahun Anggaran</div>
+            <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
         </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #d97706;">
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #2563eb;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📋 Tanggal Data</div>
+            <div style="font-size:20px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #d97706;">
             <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
-            <div style="font-size:15px;font-weight:700;color:#1d4ed8;">{info['upload_time']}</div>
-        </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #7c3aed;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
+            <div style="font-size:18px;font-weight:700;color:#1d4ed8;">{info['upload_time']}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
@@ -1377,53 +1330,6 @@ elif "History (BLUD)" in menu:
     if not files:
         st.info("Belum ada history upload BLUD."); st.stop()
 
-    st.subheader("📋 Daftar File History")
-
-    # ── Buat DataFrame ringkasan untuk tabel scrollable ──
-    summary_rows = []
-    for i, f in enumerate(files):
-        info = get_file_info(f)
-        summary_rows.append({
-            "#":             i + 1,
-            "Nama File":     f.name,
-            "Tanggal Data":  info["tanggal_data"],
-            "Tahun":         info["tahun_anggaran"],
-            "Waktu Upload":  info["upload_time"],
-            "Ukuran":        f"{info['size_kb']} KB",
-        })
-
-    import pandas as pd
-    df_summary = pd.DataFrame(summary_rows)
-
-    col_search, col_info2 = st.columns([3, 1])
-    with col_search:
-        search_q = st.text_input("🔍 Cari nama file / tanggal...", key="hist_blud_search", placeholder="Ketik untuk filter...")
-    with col_info2:
-        st.markdown(f'<div style="padding:8px 0;font-size:13px;color:#64748b;">Total: <b>{len(files)}</b> file</div>', unsafe_allow_html=True)
-
-    if search_q.strip():
-        mask     = df_summary["Nama File"].str.contains(search_q, case=False, na=False) | \
-                   df_summary["Tanggal Data"].str.contains(search_q, case=False, na=False)
-        df_shown = df_summary[mask].reset_index(drop=True)
-    else:
-        df_shown = df_summary
-
-    st.dataframe(
-        df_shown,
-        use_container_width=True,
-        hide_index=True,
-        height=370,
-        column_config={
-            "#":            st.column_config.NumberColumn(width="small"),
-            "Nama File":    st.column_config.TextColumn(width="large"),
-            "Tanggal Data": st.column_config.TextColumn(width="medium"),
-            "Tahun":        st.column_config.TextColumn(width="small"),
-            "Waktu Upload": st.column_config.TextColumn(width="medium"),
-            "Ukuran":       st.column_config.TextColumn(width="small"),
-        }
-    )
-
-    st.markdown("---")
     st.subheader("🔍 Detail & Export File History")
     selected      = st.selectbox("Pilih file history:", [f.name for f in files], key="hist_blud_select_final")
     selected_path = next(f for f in files if f.name == selected)
@@ -1431,22 +1337,24 @@ elif "History (BLUD)" in menu:
     df_hist       = load_history_file(selected_path)
 
     st.markdown(f"""
-    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:16px;">
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #2563eb;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #7c3aed;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📦 Ukuran File</div>
+            <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
         </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #16a34a;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #16a34a;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📅 Tahun Anggaran</div>
+            <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
         </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #d97706;">
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #2563eb;">
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📋 Tanggal Data</div>
+            <div style="font-size:20px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
+        </div>
+        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #d97706;">
             <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
-            <div style="font-size:15px;font-weight:700;color:#16a34a;">{info['upload_time']}</div>
-        </div>
-        <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:14px 16px;border-top:3px solid #7c3aed;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
-            <div style="font-size:18px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
+            <div style="font-size:18px;font-weight:700;color:#16a34a;">{info['upload_time']}</div>
         </div>
     </div>
     """, unsafe_allow_html=True)
