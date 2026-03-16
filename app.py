@@ -214,14 +214,19 @@ def show_auth_page():
                 st.error("**Username tidak ditemukan.** Pastikan sudah daftar.")
 
     with tab_register:
+        # Counter sebagai suffix key — naik setiap registrasi berhasil → semua widget dapat key baru → kosong otomatis
+        if "reg_form_counter" not in st.session_state:
+            st.session_state["reg_form_counter"] = 0
+        _c = st.session_state["reg_form_counter"]
+
         st.markdown("**Buat akun baru (data lengkap)**")
         if st.session_state.get("register_success"):
             st.success(st.session_state.pop("register_success"))
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
-        new_username = st.text_input("Username (unik)", key="reg_username_unique")
-        new_password = st.text_input("Password", type="password", key="reg_password_unique",
+        new_username = st.text_input("Username (unik)", key=f"reg_username_{_c}")
+        new_password = st.text_input("Password", type="password", key=f"reg_password_{_c}",
                                      help="Min. 8 karakter, huruf kapital, huruf kecil, angka, dan karakter spesial")
 
         if new_password:
@@ -235,12 +240,12 @@ def show_auth_page():
             if not _strength["is_strong"]:
                 st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah.")
 
-        with st.form(key="register_form"):
-            confirm_password = st.text_input("Konfirmasi Password", type="password", key="reg_confirm_unique")
-            nama_lengkap     = st.text_input("Nama Lengkap", key="reg_nama_unique")
-            email            = st.text_input("Email", key="reg_email_unique")
-            tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900,1,1), max_value=datetime.now(), key="reg_tgl_lahir_unique")
-            no_hp            = st.text_input("Nomor HP / WA", key="reg_hp_unique")
+        with st.form(key=f"register_form_{_c}"):
+            confirm_password = st.text_input("Konfirmasi Password", type="password", key=f"reg_confirm_{_c}")
+            nama_lengkap     = st.text_input("Nama Lengkap", key=f"reg_nama_{_c}")
+            email            = st.text_input("Email", key=f"reg_email_{_c}")
+            tgl_lahir        = st.date_input("Tanggal Lahir", min_value=datetime(1900,1,1), max_value=datetime.now(), key=f"reg_tgl_{_c}")
+            no_hp            = st.text_input("Nomor HP / WA", key=f"reg_hp_{_c}")
             submit_button    = st.form_submit_button("Daftar Akun", type="primary", use_container_width=True)
 
         if submit_button:
@@ -262,14 +267,8 @@ def show_auth_page():
                 else:
                     hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     save_user(new_username, {"password": hashed, "nama_lengkap": nama_lengkap.strip(), "email": email.strip(), "tgl_lahir": str(tgl_lahir), "no_hp": no_hp.strip()})
-                    # ── Reset semua field & tampilkan pesan sukses di tab ini ──
-                    for _key in [
-                        "reg_username_unique", "reg_password_unique",
-                        "reg_confirm_unique",  "reg_nama_unique",
-                        "reg_email_unique",    "reg_tgl_lahir_unique",
-                        "reg_hp_unique",
-                    ]:
-                        st.session_state.pop(_key, None)
+                    # Naikkan counter → semua widget dapat key baru → form kosong otomatis
+                    st.session_state["reg_form_counter"] = _c + 1
                     st.session_state["register_success"] = f"✅ Akun **{new_username}** berhasil dibuat! Silakan login."
                     st.rerun()
 
