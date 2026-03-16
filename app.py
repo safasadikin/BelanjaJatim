@@ -648,8 +648,8 @@ menu = st.sidebar.radio(
     menu_options,
     index=default_idx,
     format_func=lambda x: {
-        "Upload Data (Non-BLUD)": "⬆  Upload Data",
-        "Upload Data (BLUD)":     "⬆  Upload Data",
+        "Upload Data (Non-BLUD)": "⬆  Upload Data Non-BLUD",
+        "Upload Data (BLUD)":     "⬆  Upload Data BLUD",
         "Dashboard (Non-BLUD)":   "📊  Dashboard",
         "Dashboard (BLUD)":       "📊  Dashboard",
         "History (Non-BLUD)":     "📁  History",
