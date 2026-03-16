@@ -525,17 +525,20 @@ def get_file_info(filepath):
     size_kb = round(p.stat().st_size / 1024, 1)
     name    = p.stem
 
-    # ── 1. Coba baca metadata #UPLOAD_TIME dari dalam file (file baru) ──
+    # ── 1. Baca #UPLOAD_TIME dari baris pertama CSV (paling akurat) ──
     upload_time = None
     try:
-        with open(filepath, encoding="utf-8-sig") as f:
-            first_line = f.readline().strip()
+        with open(filepath, encoding="utf-8-sig") as fh:
+            first_line = fh.readline().strip()
         if first_line.startswith("#UPLOAD_TIME="):
-            upload_time = first_line.split("=", 1)[1]
+            val = first_line.split("=", 1)[1].strip()
+            # Validasi format DD/MM/YYYY HH:MM:SS
+            datetime.strptime(val, "%d/%m/%Y %H:%M:%S")
+            upload_time = val
     except Exception:
-        pass
+        upload_time = None
 
-    # ── 2. Fallback: parse timestamp dari nama file (lebih akurat dari st_mtime) ──
+    # ── 2. Fallback: parse timestamp dari nama file ──
     m = re.match(
         r"^(blud|non-blud|non_blud|nonblud)_"
         r"(\d{2}-\d{2}-\d{4})_"
@@ -547,15 +550,14 @@ def get_file_info(filepath):
     tahun_anggaran = m.group(3)                   if m else "–"
 
     if not upload_time and m:
-        # Ambil dari nama file: group(4)=YYYYMMDD, group(5)=HHMMSS
-        ts_raw = m.group(4) + m.group(5)   # e.g. "20260313_142205" → "20260313142205"
+        ts_raw = m.group(4) + m.group(5)
         try:
             upload_dt   = datetime.strptime(ts_raw, "%Y%m%d%H%M%S")
             upload_time = upload_dt.strftime("%d/%m/%Y %H:%M:%S")
         except ValueError:
             pass
 
-    # ── 3. Last resort: st_mtime ──
+    # ── 3. Last resort: waktu modifikasi file ──
     if not upload_time:
         upload_time = datetime.fromtimestamp(p.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
 
@@ -1340,20 +1342,6 @@ elif "History (Non-BLUD)" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("Preview Data History")
-    st.dataframe(df_hist, use_container_width=True, hide_index=True)
-
-    # ── Banner info recovery ──
-    st.markdown("""
-    <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:20px;">💡</span>
-        <div>
-            <div style="font-size:13px;font-weight:600;color:#1e40af;">Fitur Pemulihan Data</div>
-            <div style="font-size:12px;color:#3b82f6;margin-top:2px;">Gunakan <b>"Pulihkan ke Sesi Aktif"</b> untuk memuat ulang data ini ke Dashboard — berguna saat data aktif hilang atau sesi habis.</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
     st.subheader("📤 Export & Aksi")
     col_csv, col_pdf = st.columns(2)
     with col_csv:
@@ -1371,26 +1359,11 @@ elif "History (Non-BLUD)" in menu:
         pdf_hist = generate_pdf_report(dfh, info["tanggal_data"], total_ang_h, total_real_h, total_pct_h, int(ta_pdf), "non_blud")
         st.download_button("📄 Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
 
-    col_recover, col_del = st.columns(2)
-    with col_recover:
-        if st.button("📂 Pulihkan ke Sesi Aktif", use_container_width=True, key="recover_non_blud",
-                     help="Muat data ini ke sesi aktif — data akan muncul di Dashboard Non-BLUD"):
-            df_recover = load_history_file(selected_path)
-            df_recover = normalize_headers(df_recover)
-            df_recover = normalize_numeric(df_recover, ["ANGGARAN","REALISASI","PROSENTASE"])
-            df_recover = compute_pct(df_recover)
-            st.session_state["df_non_blud"]        = df_recover
-            st.session_state["tanggal_impor"]      = info["tanggal_data"]
-            st.session_state["tahun_anggaran"]     = int(info["tahun_anggaran"]) if str(info["tahun_anggaran"]).isdigit() else 2026
-            st.session_state["_recovered_from"]    = selected
-            st.success(f"✅ Data **{selected}** berhasil dipulihkan ke sesi aktif! Silakan buka menu Dashboard Non-BLUD.")
-            st.balloons()
-    with col_del:
-        if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_non_final"):
-            os.remove(selected_path)
-            st.session_state["hist_non_page"] = 1
-            st.success(f"File `{selected}` berhasil dihapus.")
-            st.rerun()
+    if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_non_final"):
+        os.remove(selected_path)
+        st.session_state["hist_non_page"] = 1
+        st.success(f"File `{selected}` berhasil dihapus.")
+        st.rerun()
 
 # ───────────────────────────────────────────────
 #           HISTORY BLUD
@@ -1476,20 +1449,6 @@ elif "History (BLUD)" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("Preview Data History")
-    st.dataframe(df_hist, use_container_width=True, hide_index=True)
-
-    # ── Banner info recovery ──
-    st.markdown("""
-    <div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:12px 16px;margin:12px 0;display:flex;align-items:center;gap:10px;">
-        <span style="font-size:20px;">💡</span>
-        <div>
-            <div style="font-size:13px;font-weight:600;color:#15803d;">Fitur Pemulihan Data</div>
-            <div style="font-size:12px;color:#16a34a;margin-top:2px;">Gunakan <b>"Pulihkan ke Sesi Aktif"</b> untuk memuat ulang data ini ke Dashboard — berguna saat data aktif hilang atau sesi habis.</div>
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
-
     st.subheader("📤 Export & Aksi")
     col_csv, col_pdf = st.columns(2)
     with col_csv:
@@ -1507,26 +1466,11 @@ elif "History (BLUD)" in menu:
         pdf_hist = generate_pdf_report(dfh, info["tanggal_data"], total_ang_h, total_real_h, total_pct_h, int(ta_pdf), "blud")
         st.download_button("📄 Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
 
-    col_recover, col_del = st.columns(2)
-    with col_recover:
-        if st.button("📂 Pulihkan ke Sesi Aktif", use_container_width=True, key="recover_blud",
-                     help="Muat data ini ke sesi aktif — data akan muncul di Dashboard BLUD"):
-            df_recover = load_history_file(selected_path)
-            df_recover = normalize_headers(df_recover)
-            df_recover = normalize_numeric(df_recover, ["ANGGARAN","REALISASI","SISA KREDIT","PROSENTASE"])
-            df_recover = compute_pct(df_recover)
-            st.session_state["df_blud"]            = df_recover
-            st.session_state["tanggal_impor"]      = info["tanggal_data"]
-            st.session_state["tahun_anggaran"]     = int(info["tahun_anggaran"]) if str(info["tahun_anggaran"]).isdigit() else 2026
-            st.session_state["_recovered_from"]    = selected
-            st.success(f"✅ Data **{selected}** berhasil dipulihkan ke sesi aktif! Silakan buka menu Dashboard BLUD.")
-            st.balloons()
-    with col_del:
-        if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
-            os.remove(selected_path)
-            st.session_state["hist_blud_page"] = 1
-            st.success(f"File `{selected}` berhasil dihapus.")
-            st.rerun()
+    if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
+        os.remove(selected_path)
+        st.session_state["hist_blud_page"] = 1
+        st.success(f"File `{selected}` berhasil dihapus.")
+        st.rerun()
 
 # ───────────────────────────────────────────────
 #           DEBUG
