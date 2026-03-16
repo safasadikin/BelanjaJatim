@@ -170,12 +170,6 @@ def show_auth_page():
     with tab_login:
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
-        if "just_registered" in st.session_state:
-            st.session_state.pop("just_registered", None)
-            st.session_state.pop("just_registered_username", None)
-            st.session_state.pop("just_registered_nama", None)
-            st.session_state.pop("just_registered_message", None)
-
         st.markdown("**Masuk ke aplikasi**")
         remembered_username = cookies.get("remember_username", "")
         username = st.text_input("Username", value=remembered_username, key="login_username_unique")
@@ -221,6 +215,8 @@ def show_auth_page():
 
     with tab_register:
         st.markdown("**Buat akun baru (data lengkap)**")
+        if st.session_state.get("register_success"):
+            st.success(st.session_state.pop("register_success"))
         if st.session_state.get("register_error"):
             st.error(st.session_state.pop("register_error"))
 
@@ -266,14 +262,7 @@ def show_auth_page():
                 else:
                     hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     save_user(new_username, {"password": hashed, "nama_lengkap": nama_lengkap.strip(), "email": email.strip(), "tgl_lahir": str(tgl_lahir), "no_hp": no_hp.strip()})
-                    import time
-                    bar = st.progress(0, text="Mengalihkan ke halaman Login...")
-                    for i in range(1, 101):
-                        time.sleep(0.02)
-                        bar.progress(i, text=f"Mengalihkan ke halaman Login... {i}%")
-                    st.session_state["just_registered"] = True
-                    st.query_params["tab"] = "login"
-                    # ── Reset semua field form registrasi ──
+                    # ── Reset semua field & tampilkan pesan sukses di tab ini ──
                     for _key in [
                         "reg_username_unique", "reg_password_unique",
                         "reg_confirm_unique",  "reg_nama_unique",
@@ -281,6 +270,7 @@ def show_auth_page():
                         "reg_hp_unique",
                     ]:
                         st.session_state.pop(_key, None)
+                    st.session_state["register_success"] = f"✅ Akun **{new_username}** berhasil dibuat! Silakan login."
                     st.rerun()
 
     with tab_reset:
