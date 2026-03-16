@@ -273,6 +273,14 @@ def show_auth_page():
                         bar.progress(i, text=f"Mengalihkan ke halaman Login... {i}%")
                     st.session_state["just_registered"] = True
                     st.query_params["tab"] = "login"
+                    # ── Reset semua field form registrasi ──
+                    for _key in [
+                        "reg_username_unique", "reg_password_unique",
+                        "reg_confirm_unique",  "reg_nama_unique",
+                        "reg_email_unique",    "reg_tgl_lahir_unique",
+                        "reg_hp_unique",
+                    ]:
+                        st.session_state.pop(_key, None)
                     st.rerun()
 
     with tab_reset:
