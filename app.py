@@ -6,7 +6,12 @@ import re
 import os
 import bcrypt
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
+
+WIB = timezone(timedelta(hours=7))
+def now_wib() -> datetime:
+    """Waktu sekarang dalam WIB (UTC+7)."""
+    return datetime.now(WIB).replace(tzinfo=None)
 from PIL import Image
 from reportlab.lib.pagesizes import A4, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
@@ -438,7 +443,7 @@ st.sidebar.markdown(f"""
 if "tahun_non_blud" not in st.session_state: st.session_state["tahun_non_blud"] = 2026
 if "tahun_blud"     not in st.session_state: st.session_state["tahun_blud"]     = 2026
 if "tahun_anggaran" not in st.session_state: st.session_state["tahun_anggaran"] = 2026
-if "tanggal_impor"  not in st.session_state: st.session_state["tanggal_impor"]  = datetime.now().strftime("%d/%m/%Y")
+if "tanggal_impor"  not in st.session_state: st.session_state["tanggal_impor"]  = now_wib().strftime("%d/%m/%Y")
 
 HISTORY_DIR_NON_BLUD = "history_non_blud"
 HISTORY_DIR_BLUD     = "history_blud"
@@ -497,7 +502,7 @@ def save_to_history(df, tipe, tanggal_impor, tahun):
     dir_path      = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
     tanggal_clean = tanggal_impor.replace("/", "-")
     # Catat waktu TEPAT saat fungsi ini dipanggil = waktu upload sebenarnya
-    waktu_upload_aktual = datetime.now()
+    waktu_upload_aktual = now_wib()
     timestamp     = waktu_upload_aktual.strftime("%Y%m%d_%H%M%S")
     filename      = f"{tipe.lower()}_{tanggal_clean}_TA{tahun}_{timestamp}.csv"
     filepath      = os.path.join(dir_path, filename)
@@ -559,7 +564,7 @@ def get_file_info(filepath):
 
     # ── 3. Last resort: waktu modifikasi file ──
     if not upload_time:
-        upload_time = datetime.fromtimestamp(p.stat().st_mtime).strftime("%d/%m/%Y %H:%M:%S")
+        upload_time = (datetime.fromtimestamp(p.stat().st_mtime) + timedelta(hours=7)).strftime("%d/%m/%Y %H:%M:%S")
 
     return {
         "tanggal_data":   tanggal_data,
@@ -582,7 +587,7 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
     tipe_label = "GABUNGAN (NON-BLUD + BLUD)" if is_gabungan else ("BLUD" if is_blud else "NON-BLUD")
     elements.append(Paragraph(f"LAPORAN REALISASI BELANJA JAWA TIMUR TA {tahun_anggaran} ({tipe_label})", styles["Heading1"]))
     elements.append(Paragraph(f"Data per tanggal: {tanggal_impor}", styles["Normal"]))
-    elements.append(Paragraph(f"Dicetak pada: {datetime.now().strftime('%d/%m/%Y %H:%M:%S')}", styles["Normal"]))
+    elements.append(Paragraph(f"Dicetak pada: {now_wib().strftime('%d/%m/%Y %H:%M:%S')}", styles["Normal"]))
     elements.append(Spacer(1, 12))
     summary_data  = [["Keterangan","Nilai"],["Total Anggaran",f"Rp {total_ang:,.0f}".replace(",",".")],["Total Realisasi",f"Rp {total_real:,.0f}".replace(",",".")],["% Realisasi",f"{total_persen:.2f}%"]]
     summary_table = Table(summary_data, colWidths=[2.5*inch, 3*inch])
@@ -697,7 +702,7 @@ if "Upload Data" in menu:
     tipe_icon   = "🔴" if tipe_upload == "Non-BLUD" else "🔵"
     menu_history = f"History ({tipe_upload})"
 
-    tanggal_now = datetime.now().strftime("%d %b %Y")
+    tanggal_now = now_wib().strftime("%d %b %Y")
 
     # ── TOPBAR BREADCRUMB ──
     st.markdown(f"""
@@ -811,7 +816,7 @@ if "Upload Data" in menu:
                 tanggal_impor = f"{day}/{month}/{year}"
                 st.success(f"✅ Tanggal terdeteksi dari nama file: **{tanggal_impor}**")
             else:
-                tanggal_impor = datetime.now().strftime("%d/%m/%Y")
+                tanggal_impor = now_wib().strftime("%d/%m/%Y")
                 st.info(f"ℹ️ Tanggal tidak terdeteksi. Menggunakan hari ini: **{tanggal_impor}**")
 
             st.session_state["tanggal_impor"] = tanggal_impor
@@ -918,7 +923,7 @@ if "Upload Data" in menu:
                 st.session_state["df_blud"] = df.copy()
 
             # Simpan ke history dengan timestamp SEKARANG (real-time saat upload)
-            waktu_upload_sekarang = datetime.now()
+            waktu_upload_sekarang = now_wib()
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
             # Catat waktu upload terakhir ke session_state agar stat cards update
             st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
