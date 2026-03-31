@@ -594,15 +594,17 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
         headers    = ["No","Tipe","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
         col_widths = [0.4*inch,0.8*inch,1.0*inch,2.6*inch,1.4*inch,1.4*inch,0.7*inch]
     else:
-        headers    = ["No","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.4*inch,1.0*inch,2.6*inch,1.4*inch,1.4*inch,0.7*inch]
+        headers    = ["No","No Asal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
+        col_widths = [0.35*inch,0.4*inch,1.0*inch,2.3*inch,1.4*inch,1.4*inch,0.7*inch]
     table_data = [headers]
-    for idx, row in df.iterrows():
+    df_reset = df.reset_index(drop=True)
+    for urut, (_, row) in enumerate(df_reset.iterrows(), start=1):
         skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")[:40]
+        no_asal   = str(int(row["No"])) if "No" in row and str(row["No"]).replace(".0","").isdigit() else str(urut)
         if is_gabungan or is_blud:
-            row_list = [str(idx+1),str(row.get("TIPE","")),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [str(urut),str(row.get("TIPE","")),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
         else:
-            row_list = [str(idx+1),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [str(urut),no_asal,str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
         table_data.append(row_list)
     detail_table = Table(table_data, colWidths=col_widths, repeatRows=1)
     detail_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),7),("ALIGN",(0,0),(-1,-1),"CENTER"),("ALIGN",(3,1),(3,-1),"LEFT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("GRID",(0,0),(-1,-1),0.4,colors.grey),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3)]))
@@ -964,11 +966,19 @@ if "Upload Data" in menu:
                         "Prosentase": "% BELANJA",
                     })
 
+                    # ── Hitung total dari Lap RealBelanja (sumber kebenaran angka) ──
+                    _total_ang  = float(df_lap["ANGGARAN"].sum())
+                    _total_real = float(df_lap["REALISASI"].sum())
+                    _total_pct  = round(_total_real / _total_ang * 100, 2) if _total_ang > 0 else 0.0
+
                     # ── Simpan ke session state untuk dashboard ──
-                    st.session_state["df_master_unit"]    = df_master.copy()
-                    st.session_state["df_real_belanja"]   = df_real_belanja.copy()
-                    st.session_state["df_lap_real"]       = df_lap.copy()
-                    st.session_state["sd_real_parsed"]    = True
+                    st.session_state["df_master_unit"]      = df_master.copy()
+                    st.session_state["df_real_belanja"]     = df_real_belanja.copy()
+                    st.session_state["df_lap_real"]         = df_lap.copy()
+                    st.session_state["sd_real_parsed"]      = True
+                    st.session_state["lap_total_anggaran"]  = _total_ang
+                    st.session_state["lap_total_realisasi"] = _total_real
+                    st.session_state["lap_total_persen"]    = _total_pct
 
                     # ── Bentuk df utama untuk dashboard & history (dari Real_Belanja) ──
                     df = df_real_belanja.copy()
@@ -1134,9 +1144,15 @@ elif "Dashboard (Non-BLUD)" in menu:
     pos = df_display.columns.get_loc("REALISASI")+1 if "REALISASI" in df_display.columns else len(df_display.columns)
     df_display.insert(pos, "TAHUN ANGGARAN", st.session_state["tahun_non_blud"])
 
-    total_ang    = float(df["ANGGARAN"].sum())
-    total_real   = float(df["REALISASI"].sum())
-    total_persen = (total_real/total_ang*100) if total_ang > 0 else 0
+    # Gunakan total dari Lap RealBelanja jika tersedia (lebih akurat), fallback ke df
+    if st.session_state.get("sd_real_parsed") and "lap_total_anggaran" in st.session_state:
+        total_ang    = st.session_state["lap_total_anggaran"]
+        total_real   = st.session_state["lap_total_realisasi"]
+        total_persen = st.session_state["lap_total_persen"]
+    else:
+        total_ang    = float(df["ANGGARAN"].sum())
+        total_real   = float(df["REALISASI"].sum())
+        total_persen = (total_real/total_ang*100) if total_ang > 0 else 0
 
     col1, col2, col3 = st.columns(3)
     col1.metric("Total Anggaran",  rupiah(total_ang))
