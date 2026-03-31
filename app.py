@@ -871,35 +871,145 @@ if "Upload Data" in menu:
                 df = df.drop(columns=[c for c in ["NO","EMPTY"] if c in df.columns], errors="ignore")
 
             else:
-                # Non-BLUD: sheet Table Real_Belanja sudah bersih, header baris 1 (index 0)
-                # Kolom: No | Kode SKPD | Nama SKPD | Anggaran | Realisasi | Prosentase | Tanggal impor Data
-                # Cari baris header
-                header_row = 0
-                for i in range(min(5, len(raw))):
-                    row_vals = [str(v).strip().upper() for v in raw.iloc[i] if str(v).strip() not in ("NAN","")]
-                    if any(k in row_vals for k in ["NO","KODE SKPD","ANGGARAN","NAMA SKPD"]):
-                        header_row = i; break
+                # ── Non-BLUD: deteksi apakah sheet ini SD_Real atau Table Real_Belanja ──
+                sheet_upper = str(sheet).upper().strip()
+                # Deteksi SD_Real: nama sheet cocok, ATAU kolom tunggal & baris pertama = "Belanja"
+                first_cell_val = str(raw.iloc[0, 0]).strip().upper() if len(raw) > 0 else ""
+                is_sd_real = sheet_upper in ["SD_REAL", "SD REAL", "SHEET1"] or (
+                    len(raw.columns) == 1 and (
+                        str(raw.columns[0]).upper().strip() == "BELANJA" or first_cell_val == "BELANJA"
+                    )
+                )
 
-                df = pd.read_excel(excel, sheet_name=sheet, header=header_row)
-                cols_clean = []
-                seen = {}
-                for c in df.columns:
-                    c2 = str(c).strip().upper().replace("\n"," ")
-                    if c2 in seen:
-                        seen[c2] += 1; c2 = f"{c2}_{seen[c2]}"
-                    else:
-                        seen[c2] = 0
-                    cols_clean.append(c2)
-                df.columns = cols_clean
+                if is_sd_real:
+                    # ── Parse SD_Real: format kolom tunggal berisi blok per SKPD ──
+                    # Pola per blok (9 baris): Nama SKPD, "SKPD", "Kode: X.XX...", NaN, "RpX,00Anggaran", "X.XX%", NaN, "RpX,00Realisasi Rill", NaN
+                    def parse_rp(s):
+                        s = str(s).replace("Rp","").replace(".","").replace(",",".")
+                        s = re.sub(r"[^0-9\.]", "", s.split(".")[0] + ("." + s.split(".")[1] if "." in s else ""))
+                        s = re.sub(r"[^0-9]", "", str(s).split(".")[0])
+                        return int(s) if s else 0
 
-                col_map_non = {
-                    "NO": "NO", "KODE SKPD": "KODE SKPD",
-                    "NAMA SKPD": "NAMA SKPD",
-                    "ANGGARAN": "ANGGARAN", "REALISASI": "REALISASI",
-                    "PROSENTASE": "PROSENTASE",
-                    "TANGGAL IMPOR DATA": "Tanggal Impor Data",
-                }
-                df = df.rename(columns=col_map_non)
+                    def parse_rp_full(s):
+                        # Ambil angka dari format "Rp1.425.508.583.583,00Anggaran"
+                        s = str(s)
+                        m2 = re.search(r"Rp([\d\.,]+)", s)
+                        if not m2: return 0
+                        num_str = m2.group(1).replace(".","").replace(",",".")
+                        try: return float(num_str.split(".")[0])
+                        except: return 0
+
+                    raw_vals = raw.iloc[:, 0].tolist()
+                    records = []
+                    i = 0
+                    while i < len(raw_vals):
+                        val = str(raw_vals[i]).strip()
+                        # Skip baris kosong, header "Belanja"
+                        if not val or val.upper() in ("NAN", "BELANJA"):
+                            i += 1; continue
+                        # Nama SKPD biasanya baris sebelum "SKPD"
+                        if i + 1 < len(raw_vals) and str(raw_vals[i+1]).strip().upper() == "SKPD":
+                            nama = val
+                            # Baris i+2: "Kode: X.XX...."
+                            kode_raw = str(raw_vals[i+2]).strip() if i+2 < len(raw_vals) else ""
+                            kode = kode_raw.replace("Kode:", "").strip()
+                            # Baris i+4: "RpX,00Anggaran"
+                            anggaran_raw = str(raw_vals[i+4]).strip() if i+4 < len(raw_vals) else "0"
+                            anggaran = parse_rp_full(anggaran_raw)
+                            # Baris i+5: "X.XX%"
+                            pct_raw = str(raw_vals[i+5]).strip() if i+5 < len(raw_vals) else "0"
+                            pct_val = float(re.sub(r"[^0-9\.]","", pct_raw)) if re.search(r"[\d]", pct_raw) else 0.0
+                            # Baris i+7: "RpX,00Realisasi Rill"
+                            real_raw = str(raw_vals[i+7]).strip() if i+7 < len(raw_vals) else "0"
+                            realisasi = parse_rp_full(real_raw)
+                            records.append({
+                                "Kode SKPD": kode,
+                                "Nama SKPD": nama,
+                                "Anggaran": anggaran,
+                                "Realisasi": realisasi,
+                                "Prosentase": pct_val,
+                            })
+                            i += 9
+                        else:
+                            i += 1
+
+                    if not records:
+                        raise ValueError("Tidak ada data SKPD yang berhasil dibaca dari sheet SD_Real. Pastikan format file sesuai.")
+
+                    df_parsed = pd.DataFrame(records)
+
+                    # ── Generate Table Master_Unit ──
+                    auto_id_map = {
+                        r["Kode SKPD"]: re.sub(r"[^0-9]","", r["Kode SKPD"]).ljust(15,"0")[:15]
+                        for r in records
+                    }
+                    df_master = pd.DataFrame([
+                        {"ID": auto_id_map[r["Kode SKPD"]], "Kode SKPD": r["Kode SKPD"], "Nama SKPD": r["Nama SKPD"]}
+                        for r in records
+                    ]).drop_duplicates(subset=["Kode SKPD"]).reset_index(drop=True)
+
+                    # ── Generate Table Real_Belanja ──
+                    df_real_belanja = df_parsed.copy()
+                    df_real_belanja.insert(0, "No", range(1, len(df_real_belanja)+1))
+                    df_real_belanja["Tanggal impor Data"] = tanggal_impor
+
+                    # ── Generate Lap RealBelanja ──
+                    df_lap = df_parsed.copy()
+                    df_lap.insert(0, "NO", range(1, len(df_lap)+1))
+                    df_lap = df_lap.rename(columns={
+                        "Kode SKPD": "KODE SKPD",
+                        "Nama SKPD": "NAMA SKPD",
+                        "Anggaran": "ANGGARAN",
+                        "Realisasi": "REALISASI",
+                        "Prosentase": "% BELANJA",
+                    })
+
+                    # ── Simpan ke session state untuk dashboard ──
+                    st.session_state["df_master_unit"]    = df_master.copy()
+                    st.session_state["df_real_belanja"]   = df_real_belanja.copy()
+                    st.session_state["df_lap_real"]       = df_lap.copy()
+                    st.session_state["sd_real_parsed"]    = True
+
+                    # ── Bentuk df utama untuk dashboard & history (dari Real_Belanja) ──
+                    df = df_real_belanja.copy()
+                    df = df.rename(columns={
+                        "Kode SKPD": "KODE SKPD",
+                        "Nama SKPD": "NAMA SKPD",
+                        "Anggaran": "ANGGARAN",
+                        "Realisasi": "REALISASI",
+                        "Prosentase": "PROSENTASE",
+                        "Tanggal impor Data": "Tanggal Impor Data",
+                    })
+
+                else:
+                    # Sheet Table Real_Belanja / format standar
+                    header_row = 0
+                    for i in range(min(5, len(raw))):
+                        row_vals = [str(v).strip().upper() for v in raw.iloc[i] if str(v).strip() not in ("NAN","")]
+                        if any(k in row_vals for k in ["NO","KODE SKPD","ANGGARAN","NAMA SKPD"]):
+                            header_row = i; break
+
+                    df = pd.read_excel(excel, sheet_name=sheet, header=header_row)
+                    cols_clean = []
+                    seen = {}
+                    for c in df.columns:
+                        c2 = str(c).strip().upper().replace("\n"," ")
+                        if c2 in seen:
+                            seen[c2] += 1; c2 = f"{c2}_{seen[c2]}"
+                        else:
+                            seen[c2] = 0
+                        cols_clean.append(c2)
+                    df.columns = cols_clean
+
+                    col_map_non = {
+                        "NO": "NO", "KODE SKPD": "KODE SKPD",
+                        "NAMA SKPD": "NAMA SKPD",
+                        "ANGGARAN": "ANGGARAN", "REALISASI": "REALISASI",
+                        "PROSENTASE": "PROSENTASE",
+                        "TANGGAL IMPOR DATA": "Tanggal Impor Data",
+                    }
+                    df = df.rename(columns=col_map_non)
+                    st.session_state["sd_real_parsed"] = False
 
             df = normalize_headers(df)
             df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
@@ -909,6 +1019,7 @@ if "Upload Data" in menu:
             if nm and "ANGGARAN" in df.columns:
                 df = df[df[nm].notna() & (df[nm].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
 
+            if "NO" in df.columns: df = df.drop(columns=["NO"])
             if "No" in df.columns: df = df.drop(columns=["No"])
             df.insert(0, "No", range(1, len(df)+1))
             df["Tanggal Impor Data"] = tanggal_impor
@@ -928,17 +1039,38 @@ if "Upload Data" in menu:
 
             st.success(f"✅ Data berhasil diimport & disimpan ke history! ⏰ {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
 
-            st.markdown("""
-            <div class="pro-card" style="margin-top:20px;">
-                <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data</span></div>
-            </div>
-            """, unsafe_allow_html=True)
-            fmt_map = {}
-            for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
-                if col in df.columns: fmt_map[col] = rupiah
-            for col in ["PROSENTASE","PERSEN SISA"]:
-                if col in df.columns: fmt_map[col] = pct_fmt
-            st.dataframe(df.style.format(fmt_map), use_container_width=True, hide_index=True)
+            # ── Preview: jika SD_Real → tampilkan semua tabel generate ──
+            if tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed"):
+                st.markdown("""
+                <div class="pro-card" style="margin-top:20px;">
+                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD_Real</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                tab_mu, tab_rb, tab_lap = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja", "📄 Lap RealBelanja"])
+                with tab_mu:
+                    st.dataframe(st.session_state["df_master_unit"], use_container_width=True, hide_index=True)
+                with tab_rb:
+                    df_rb_prev = st.session_state["df_real_belanja"].copy()
+                    fmt_rb = {c: rupiah for c in ["Anggaran","Realisasi"] if c in df_rb_prev.columns}
+                    fmt_rb.update({c: pct_fmt for c in ["Prosentase"] if c in df_rb_prev.columns})
+                    st.dataframe(df_rb_prev.style.format(fmt_rb), use_container_width=True, hide_index=True)
+                with tab_lap:
+                    df_lap_prev = st.session_state["df_lap_real"].copy()
+                    fmt_lap = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_lap_prev.columns}
+                    fmt_lap.update({c: pct_fmt for c in ["% BELANJA"] if c in df_lap_prev.columns})
+                    st.dataframe(df_lap_prev.style.format(fmt_lap), use_container_width=True, hide_index=True)
+            else:
+                st.markdown("""
+                <div class="pro-card" style="margin-top:20px;">
+                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                fmt_map = {}
+                for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
+                    if col in df.columns: fmt_map[col] = rupiah
+                for col in ["PROSENTASE","PERSEN SISA"]:
+                    if col in df.columns: fmt_map[col] = pct_fmt
+                st.dataframe(df.style.format(fmt_map), use_container_width=True, hide_index=True)
 
         except Exception as e:
             st.error(f"Upload gagal: {str(e)}")
@@ -1050,6 +1182,58 @@ elif "Dashboard (Non-BLUD)" in menu:
         fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
         fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
         st.plotly_chart(fig, use_container_width=True)
+
+    # ── Tabel tambahan jika data berasal dari SD_Real ──
+    if st.session_state.get("sd_real_parsed"):
+        st.markdown("---")
+        st.subheader("📋 Data Hasil Generate dari SD_Real")
+        tab_mu, tab_rb, tab_lap = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja", "📄 Lap RealBelanja"])
+
+        with tab_mu:
+            st.markdown("**Tabel Master Unit (Data SKPD)**")
+            q_mu = st.text_input("Cari (Nama/Kode SKPD)", "", key="q_mu_dash")
+            df_mu = st.session_state.get("df_master_unit", pd.DataFrame()).copy()
+            if q_mu.strip():
+                mask = pd.Series(False, index=df_mu.index)
+                for c in ["Kode SKPD","Nama SKPD"]:
+                    if c in df_mu.columns: mask |= df_mu[c].astype(str).str.contains(q_mu, case=False, na=False)
+                df_mu = df_mu[mask]
+            st.dataframe(df_mu.reset_index(drop=True), use_container_width=True, hide_index=True)
+
+        with tab_rb:
+            st.markdown("**Table Real_Belanja (Data Impor)**")
+            q_rb = st.text_input("Cari (Nama/Kode SKPD)", "", key="q_rb_dash")
+            df_rb = st.session_state.get("df_real_belanja", pd.DataFrame()).copy()
+            if q_rb.strip():
+                mask = pd.Series(False, index=df_rb.index)
+                for c in ["Kode SKPD","Nama SKPD"]:
+                    if c in df_rb.columns: mask |= df_rb[c].astype(str).str.contains(q_rb, case=False, na=False)
+                df_rb = df_rb[mask]
+            fmt_rb = {c: rupiah for c in ["Anggaran","Realisasi"] if c in df_rb.columns}
+            fmt_rb.update({c: pct_fmt for c in ["Prosentase"] if c in df_rb.columns})
+            st.dataframe(df_rb.reset_index(drop=True).style.format(fmt_rb), use_container_width=True, hide_index=True)
+
+        with tab_lap:
+            st.markdown(f"**Laporan Realisasi Belanja Provinsi Jawa Timur — {tanggal_non}**")
+            q_lap = st.text_input("Cari (Nama/Kode SKPD)", "", key="q_lap_dash")
+            df_lap = st.session_state.get("df_lap_real", pd.DataFrame()).copy()
+            if q_lap.strip():
+                mask = pd.Series(False, index=df_lap.index)
+                for c in ["KODE SKPD","NAMA SKPD"]:
+                    if c in df_lap.columns: mask |= df_lap[c].astype(str).str.contains(q_lap, case=False, na=False)
+                df_lap = df_lap[mask]
+            # Tambah baris TOTAL
+            if not df_lap.empty and "ANGGARAN" in df_lap.columns:
+                total_row = {c: "" for c in df_lap.columns}
+                total_row["NAMA SKPD"] = "TOTAL"
+                total_row["ANGGARAN"]  = float(df_lap["ANGGARAN"].sum())
+                total_row["REALISASI"] = float(df_lap["REALISASI"].sum())
+                total_ang_lap = total_row["ANGGARAN"]; total_real_lap = total_row["REALISASI"]
+                total_row["% BELANJA"] = round(total_real_lap/total_ang_lap*100, 2) if total_ang_lap > 0 else 0
+                df_lap = pd.concat([df_lap, pd.DataFrame([total_row])], ignore_index=True)
+            fmt_lap = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_lap.columns}
+            fmt_lap.update({c: pct_fmt for c in ["% BELANJA"] if c in df_lap.columns})
+            st.dataframe(df_lap.reset_index(drop=True).style.format(fmt_lap), use_container_width=True, hide_index=True)
 
     st.subheader("Export Data")
     csv_data  = df_sorted.to_csv(index=False).encode("utf-8-sig")
