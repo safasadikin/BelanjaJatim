@@ -1275,7 +1275,7 @@ elif "Dashboard (Non-BLUD)" in menu:
         if col in df_csv.columns:
             df_csv[col] = df_csv[col].apply(lambda x: f"{float(x):.2f}%" if str(x).strip() not in ("","nan") else "")
 
-    csv_data = df_csv.to_csv(index=False).encode("utf-8-sig")
+    csv_data = df_csv.to_csv(index=False, sep=";").encode("utf-8-sig")
     st.download_button("⬇️ Download CSV", csv_data, "realisasi_non_blud.csv", "text/csv")
     pdf_bytes = generate_pdf_report(df_sorted, tanggal_non, total_ang, total_real, total_persen, st.session_state["tahun_non_blud"], "non_blud")
     st.download_button("📄 Download PDF", pdf_bytes, "realisasi_non_blud.pdf", "application/pdf")
