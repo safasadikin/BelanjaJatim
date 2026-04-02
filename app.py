@@ -840,9 +840,17 @@ if "Upload Data" in menu:
             raw = pd.read_excel(excel, sheet_name=sheet, header=None)
 
             if tipe_upload == "BLUD":
-                # Struktur: baris 0-1 = judul kosong, baris 2 = header, baris 3 = nomor urut kolom → skip
-                # Kolom: NO | KODE SKPD | (merge) | SKPD | KREDIT(Murni) | SP2D GAJI | SP2D LS | RINCIAN GU/TU | KOREKSI | JUMLAH | % | SISA KREDIT | %
-                df = pd.read_excel(excel, sheet_name=sheet, header=2, skiprows=[3])
+                # ── Parse sheet BLUD / SD Real_BLUD ──
+                # Struktur: baris 0-1 = kosong/judul, baris 2 = header, baris 3 = nomor urut → skip
+                # Deteksi header row secara fleksibel
+                header_row_blud = 2
+                for _hi in range(min(6, len(raw))):
+                    _row_vals = [str(v).strip().upper() for v in raw.iloc[_hi] if str(v).strip() not in ("NAN","")]
+                    if any(k in _row_vals for k in ["NO","KODE SKPD","SKPD","KREDIT"]):
+                        header_row_blud = _hi; break
+                skip_rows_blud = [header_row_blud + 1]
+
+                df = pd.read_excel(excel, sheet_name=sheet, header=header_row_blud, skiprows=skip_rows_blud)
                 # Bersihkan nama kolom
                 cols_clean = []
                 seen = {}
@@ -856,11 +864,11 @@ if "Upload Data" in menu:
                 df.columns = cols_clean
 
                 # Map ke nama standar
-                col_map = {
+                col_map_blud = {
                     "NO": "NO", "KODE SKPD": "KODE SKPD", "UNNAMED: 2": "EMPTY",
                     "SKPD": "NAMA SKPD",
                     "KREDIT  ( MURNI)": "ANGGARAN", "KREDIT ( MURNI)": "ANGGARAN",
-                    "KREDIT\n( MURNI)": "ANGGARAN",
+                    "KREDIT\n( MURNI)": "ANGGARAN", "KREDIT  ( MURNI) ": "ANGGARAN",
                     "KREDIT MURNI": "ANGGARAN", "KREDIT (MURNI)": "ANGGARAN",
                     "SP2D GAJI": "SP2D GAJI", "SP2D LS": "SP2D LS",
                     "RINCIAN PENGGUNAAN SP2D GU/TU": "RINCIAN GU/TU",
@@ -869,8 +877,47 @@ if "Upload Data" in menu:
                     "%": "PROSENTASE", "%_1": "PERSEN SISA", "%.1": "PERSEN SISA",
                     "SISA KREDIT": "SISA KREDIT",
                 }
-                df = df.rename(columns=col_map)
+                df = df.rename(columns=col_map_blud)
                 df = df.drop(columns=[c for c in ["NO","EMPTY"] if c in df.columns], errors="ignore")
+
+                # ── Normalisasi sebelum generate tabel turunan ──
+                df = normalize_headers(df)
+                df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
+                df = compute_pct(df)
+
+                # Filter hanya baris valid (ada nama SKPD & anggaran > 0)
+                nm_col = "NAMA SKPD" if "NAMA SKPD" in df.columns else ("SKPD" if "SKPD" in df.columns else None)
+                if nm_col and "ANGGARAN" in df.columns:
+                    df = df[df[nm_col].notna() & (df[nm_col].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
+
+                # ── Generate Table Master_Unit dari SD Real_BLUD ──
+                df_master_blud = pd.DataFrame()
+                if nm_col and "KODE SKPD" in df.columns:
+                    df_master_blud = df[["KODE SKPD", nm_col]].drop_duplicates(subset=["KODE SKPD"]).reset_index(drop=True)
+                    df_master_blud.insert(0, "ID", range(1, len(df_master_blud)+1))
+                    df_master_blud = df_master_blud.rename(columns={nm_col: "NAMA SKPD"})
+
+                # ── Generate Table Real_Belanja_BLUD ──
+                rb_cols = ["KODE SKPD", nm_col if nm_col else "NAMA SKPD", "ANGGARAN", "REALISASI", "PROSENTASE"]
+                df_real_blud = df[[c for c in rb_cols if c in df.columns]].copy()
+                df_real_blud.insert(0, "id", range(1, len(df_real_blud)+1))
+                df_real_blud["Tanggal Impor Data"] = tanggal_impor
+                if nm_col and nm_col != "NAMA SKPD":
+                    df_real_blud = df_real_blud.rename(columns={nm_col: "NAMA SKPD"})
+
+                # Hitung total
+                _total_ang_blud  = float(df["ANGGARAN"].sum()) if "ANGGARAN" in df.columns else 0
+                _total_real_blud = float(df["REALISASI"].sum()) if "REALISASI" in df.columns else 0
+                _total_pct_blud  = round(_total_real_blud / _total_ang_blud * 100, 2) if _total_ang_blud > 0 else 0.0
+
+                # ── Simpan ke session_state ──
+                st.session_state["df_master_unit_blud"]      = df_master_blud.copy()
+                st.session_state["df_real_belanja_blud"]     = df_real_blud.copy()
+                st.session_state["blud_sd_real_parsed"]      = True
+                st.session_state["blud_total_anggaran"]      = _total_ang_blud
+                st.session_state["blud_total_realisasi"]     = _total_real_blud
+                st.session_state["blud_total_persen"]        = _total_pct_blud
+                st.session_state["tahun_blud"]               = int(st.session_state.get("tahun_anggaran", 2026))
 
             else:
                 # ── Non-BLUD: deteksi apakah sheet ini SD_Real atau Table Real_Belanja ──
@@ -1021,13 +1068,15 @@ if "Upload Data" in menu:
                     df = df.rename(columns=col_map_non)
                     st.session_state["sd_real_parsed"] = False
 
-            df = normalize_headers(df)
-            df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
-            df = compute_pct(df)
+            # Non-BLUD: normalize di sini (BLUD sudah dinormalize di atas)
+            if tipe_upload == "Non-BLUD":
+                df = normalize_headers(df)
+                df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
+                df = compute_pct(df)
 
-            nm = "NAMA SKPD" if "NAMA SKPD" in df.columns else ("SKPD" if "SKPD" in df.columns else None)
-            if nm and "ANGGARAN" in df.columns:
-                df = df[df[nm].notna() & (df[nm].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
+                nm = "NAMA SKPD" if "NAMA SKPD" in df.columns else ("SKPD" if "SKPD" in df.columns else None)
+                if nm and "ANGGARAN" in df.columns:
+                    df = df[df[nm].notna() & (df[nm].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
 
             if "NO" in df.columns: df = df.drop(columns=["NO"])
             if "No" in df.columns: df = df.drop(columns=["No"])
@@ -1049,8 +1098,31 @@ if "Upload Data" in menu:
 
             st.success(f"✅ Data berhasil diimport & disimpan ke history! ⏰ {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
 
+            # ── Preview: jika BLUD → tampilkan semua tabel generate ──
+            if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed"):
+                st.markdown("""
+                <div class="pro-card" style="margin-top:20px;">
+                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD Real_BLUD</span></div>
+                </div>
+                """, unsafe_allow_html=True)
+                tab_mu_b, tab_rb_b, tab_all_b = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja_BLUD", "📄 Data Lengkap BLUD"])
+                with tab_mu_b:
+                    st.dataframe(st.session_state["df_master_unit_blud"], use_container_width=True, hide_index=True)
+                with tab_rb_b:
+                    df_rb_b = st.session_state["df_real_belanja_blud"].copy()
+                    fmt_rb_b = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_rb_b.columns}
+                    fmt_rb_b.update({c: pct_fmt for c in ["PROSENTASE"] if c in df_rb_b.columns})
+                    st.dataframe(df_rb_b.style.format(fmt_rb_b), use_container_width=True, hide_index=True)
+                with tab_all_b:
+                    fmt_all_b = {}
+                    for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
+                        if col in df.columns: fmt_all_b[col] = rupiah
+                    for col in ["PROSENTASE","PERSEN SISA"]:
+                        if col in df.columns: fmt_all_b[col] = pct_fmt
+                    st.dataframe(df.style.format(fmt_all_b), use_container_width=True, hide_index=True)
+
             # ── Preview: jika SD_Real → tampilkan semua tabel generate ──
-            if tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed"):
+            elif tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed"):
                 st.markdown("""
                 <div class="pro-card" style="margin-top:20px;">
                     <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD_Real</span></div>
@@ -1312,49 +1384,92 @@ elif "Dashboard (BLUD)" in menu:
     tanggal_blud = st.session_state.get("tanggal_impor", datetime.now().strftime("%d/%m/%Y"))
     st.caption(f"**Data BLUD per tanggal: {tanggal_blud}** | Tahun Anggaran: **{st.session_state['tahun_blud']}**")
 
-    with st.expander("**Urutkan & Filter Tabel**", expanded=True):
-        col_sort1, col_sort2 = st.columns([3,2])
-        with col_sort1:
-            sort_col = st.selectbox("Urutkan berdasarkan kolom", options=[c for c in df_display.columns if c not in ["Tanggal Impor Data","No"]], index=0, key="sort_blud_unique")
-        with col_sort2:
-            sort_order = st.radio("Urutan", ["Ascending","Descending"], horizontal=True, key="order_blud_unique")
-        q = st.text_input("Cari (Nama/Kode SKPD)", "", key="search_blud_unique")
+    # ── Tab navigasi: Master_Unit | Real_Belanja_BLUD | Dashboard ──
+    dash_tab1, dash_tab2, dash_tab3 = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja_BLUD", "📈 Dashboard BLUD"])
 
-    df_sorted = df_display.sort_values(by=sort_col, ascending=(sort_order=="Ascending"))
-    df_view = df_sorted.copy()
-    if q.strip():
-        cols_search = [c for c in ["KODE SKPD","SKPD","NAMA SKPD"] if c in df_view.columns]
-        if cols_search:
-            mask = pd.Series(False, index=df_view.index)
-            for c in cols_search: mask |= df_view[c].astype(str).str.contains(q, case=False, na=False)
-            df_view = df_view[mask]
-    if "No" in df_view.columns: df_view = df_view.drop(columns=["No"])
-    df_view = df_view.reset_index(drop=True); df_view.insert(0, "No", range(1, len(df_view)+1))
-    fmt_map = {}
-    for col in ["ANGGARAN","REALISASI","SISA KREDIT","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI"]:
-        if col in df_view.columns: fmt_map[col] = rupiah
-    for col in ["PROSENTASE","PERSEN SISA"]:
-        if col in df_view.columns: fmt_map[col] = pct_fmt
-    st.subheader("Tabel Data BLUD")
-    st.dataframe(df_view.style.format(fmt_map), use_container_width=True, hide_index=True)
+    with dash_tab1:
+        df_mu = st.session_state.get("df_master_unit_blud")
+        if df_mu is not None and not df_mu.empty:
+            st.subheader("Table Master_Unit")
+            q_mu = st.text_input("Cari (Master Unit)", "", key="q_mu_blud")
+            df_mu_view = df_mu.copy()
+            if q_mu.strip():
+                mask_mu = pd.Series(False, index=df_mu_view.index)
+                for c in ["KODE SKPD","NAMA SKPD"]:
+                    if c in df_mu_view.columns:
+                        mask_mu |= df_mu_view[c].astype(str).str.contains(q_mu, case=False, na=False)
+                df_mu_view = df_mu_view[mask_mu]
+            st.dataframe(df_mu_view, use_container_width=True, hide_index=True)
+        else:
+            st.info("Upload data BLUD terlebih dahulu untuk melihat Table Master_Unit.")
 
-    st.subheader("Top 10 Persentase Realisasi Tertinggi BLUD")
-    df_pct = df.copy()
-    df_pct["NAMA_SKPD"] = coalesce_name(df_pct).fillna("Tidak Ada Nama").astype(str).str.strip()
-    df_pct["PCT"]       = (df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
-    df_top = df_pct.sort_values("PCT", ascending=False).head(10)
-    if not df_top.empty:
-        fig = px.bar(df_top, x="PCT", y="NAMA_SKPD", orientation="h", title="Top 10 BLUD", height=500, text="PCT", color_discrete_sequence=["#636EFA"])
-        fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside', textfont_size=12, cliponaxis=False)
-        fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
-        fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
-        st.plotly_chart(fig, use_container_width=True)
+    with dash_tab2:
+        df_rb = st.session_state.get("df_real_belanja_blud")
+        if df_rb is not None and not df_rb.empty:
+            st.subheader("Table Real_Belanja_BLUD")
+            q_rb = st.text_input("Cari (Real Belanja BLUD)", "", key="q_rb_blud")
+            df_rb_view = df_rb.copy()
+            if q_rb.strip():
+                mask_rb = pd.Series(False, index=df_rb_view.index)
+                for c in ["KODE SKPD","NAMA SKPD"]:
+                    if c in df_rb_view.columns:
+                        mask_rb |= df_rb_view[c].astype(str).str.contains(q_rb, case=False, na=False)
+                df_rb_view = df_rb_view[mask_rb]
+            fmt_rb = {}
+            for col in ["ANGGARAN","REALISASI"]:
+                if col in df_rb_view.columns: fmt_rb[col] = rupiah
+            if "PROSENTASE" in df_rb_view.columns: fmt_rb["PROSENTASE"] = pct_fmt
+            st.dataframe(df_rb_view.style.format(fmt_rb), use_container_width=True, hide_index=True)
+            # Download Real_Belanja_BLUD
+            csv_rb = df_rb.to_csv(index=False).encode("utf-8-sig")
+            st.download_button("⬇️ Download CSV Real_Belanja_BLUD", csv_rb, "real_belanja_blud.csv", "text/csv", key="dl_rb_blud")
+        else:
+            st.info("Upload data BLUD terlebih dahulu untuk melihat Table Real_Belanja_BLUD.")
 
-    st.subheader("Export Data")
-    csv_data  = df_sorted.to_csv(index=False).encode("utf-8-sig")
-    st.download_button("⬇️ Download CSV", csv_data, "realisasi_blud.csv", "text/csv")
-    pdf_bytes = generate_pdf_report(df_sorted, tanggal_blud, total_ang, total_real, total_persen, st.session_state["tahun_blud"], "blud")
-    st.download_button("📄 Download PDF", pdf_bytes, "realisasi_blud.pdf", "application/pdf")
+    with dash_tab3:
+        with st.expander("**Urutkan & Filter Tabel**", expanded=True):
+            col_sort1, col_sort2 = st.columns([3,2])
+            with col_sort1:
+                sort_col = st.selectbox("Urutkan berdasarkan kolom", options=[c for c in df_display.columns if c not in ["Tanggal Impor Data","No"]], index=0, key="sort_blud_unique")
+            with col_sort2:
+                sort_order = st.radio("Urutan", ["Ascending","Descending"], horizontal=True, key="order_blud_unique")
+            q = st.text_input("Cari (Nama/Kode SKPD)", "", key="search_blud_unique")
+
+        df_sorted = df_display.sort_values(by=sort_col, ascending=(sort_order=="Ascending"))
+        df_view = df_sorted.copy()
+        if q.strip():
+            cols_search = [c for c in ["KODE SKPD","SKPD","NAMA SKPD"] if c in df_view.columns]
+            if cols_search:
+                mask = pd.Series(False, index=df_view.index)
+                for c in cols_search: mask |= df_view[c].astype(str).str.contains(q, case=False, na=False)
+                df_view = df_view[mask]
+        if "No" in df_view.columns: df_view = df_view.drop(columns=["No"])
+        df_view = df_view.reset_index(drop=True); df_view.insert(0, "No", range(1, len(df_view)+1))
+        fmt_map = {}
+        for col in ["ANGGARAN","REALISASI","SISA KREDIT","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI"]:
+            if col in df_view.columns: fmt_map[col] = rupiah
+        for col in ["PROSENTASE","PERSEN SISA"]:
+            if col in df_view.columns: fmt_map[col] = pct_fmt
+        st.subheader("Tabel Data BLUD")
+        st.dataframe(df_view.style.format(fmt_map), use_container_width=True, hide_index=True)
+
+        st.subheader("Top 10 Persentase Realisasi Tertinggi BLUD")
+        df_pct = df.copy()
+        df_pct["NAMA_SKPD"] = coalesce_name(df_pct).fillna("Tidak Ada Nama").astype(str).str.strip()
+        df_pct["PCT"]       = (df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
+        df_top = df_pct.sort_values("PCT", ascending=False).head(10)
+        if not df_top.empty:
+            fig = px.bar(df_top, x="PCT", y="NAMA_SKPD", orientation="h", title="Top 10 BLUD", height=500, text="PCT", color_discrete_sequence=["#636EFA"])
+            fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside', textfont_size=12, cliponaxis=False)
+            fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
+            fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
+            st.plotly_chart(fig, use_container_width=True)
+
+        st.subheader("Export Data")
+        csv_data  = df_sorted.to_csv(index=False).encode("utf-8-sig")
+        st.download_button("⬇️ Download CSV", csv_data, "realisasi_blud.csv", "text/csv")
+        pdf_bytes = generate_pdf_report(df_sorted, tanggal_blud, total_ang, total_real, total_persen, st.session_state["tahun_blud"], "blud")
+        st.download_button("📄 Download PDF", pdf_bytes, "realisasi_blud.pdf", "application/pdf")
 
 # ───────────────────────────────────────────────
 #           DASHBOARD GABUNGAN
