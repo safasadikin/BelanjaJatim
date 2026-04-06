@@ -196,6 +196,7 @@ def show_auth_page():
                 if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
+                    st.session_state["nama_lengkap"] = users[username].get("nama_lengkap", username)
                     if remember_me:
                         cookies["remember_username"] = username
                         cookies["remember_password"] = password
@@ -435,8 +436,10 @@ button[data-testid="StyledFullScreenButton"] { display: none !important; visibil
 # ── SIDEBAR ──
 import base64
 
-current_user = st.session_state.get('current_user', 'User')
-user_initial = current_user[0].upper() if current_user else 'U'
+current_user  = st.session_state.get('current_user', 'User')
+# Ambil nama_lengkap dari session_state (disimpan saat login berhasil)
+display_name  = st.session_state.get('nama_lengkap', current_user) or current_user
+user_initial  = display_name[0].upper() if display_name else 'U'
 
 # ── Daftar username yang boleh akses Developer Tools ──
 ADMIN_USERS = ["admin"]  # tambahkan username admin lain di sini
@@ -756,8 +759,8 @@ st.sidebar.markdown(f"""
     <div style="display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;">
         <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;">{user_initial}</div>
         <div style="flex:1;min-width:0;">
-            <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{current_user}</div>
-            <div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>
+            <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{display_name}</div>
+            {"<div style=\"font-size:10px;color:rgba(255,255,255,0.35);\">Administrator</div>" if current_user in ADMIN_USERS else ""}
         </div>
     </div>
 </div>
