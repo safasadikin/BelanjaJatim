@@ -1312,32 +1312,33 @@ elif "Dashboard (Non-BLUD)" in menu:
             st.plotly_chart(fig_donut, use_container_width=True)
 
         with col_g2:
-            fig_bar2 = px.bar(
-                df_top.sort_values("PCT", ascending=True),
-                x="NAMA_SKPD", y="PCT",
-                title="Persentase Realisasi — Top 10 Non-BLUD",
+            df_line = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
+            fig_line = px.line(
+                df_line, x="NAMA_SKPD", y="PCT",
+                title="Tren % Realisasi — Top 10 Non-BLUD",
                 height=480,
                 text="PCT",
-                color="PCT",
-                color_continuous_scale="RdYlGn",
+                markers=True,
+                color_discrete_sequence=["#EF553B"]
             )
-            fig_bar2.update_traces(
+            fig_line.update_traces(
                 texttemplate="%{y:.1f}%",
-                textposition="outside",
-                hovertemplate="<b>%{x}</b><br>PCT: %{y:.1f}%"
+                textposition="top center",
+                hovertemplate="<b>%{x}</b><br>PCT: %{y:.1f}%",
+                line=dict(width=3),
+                marker=dict(size=10)
             )
-            fig_bar2.update_layout(
+            fig_line.update_layout(
                 xaxis_title="Nama SKPD",
                 yaxis_title="Persentase (%)",
                 xaxis=dict(tickangle=-35, tickfont=dict(size=9)),
-                yaxis=dict(range=[0, max(120, df_top["PCT"].max()+15)]),
+                yaxis=dict(range=[0, max(120, df_line["PCT"].max()+15)]),
                 plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
                 margin=dict(l=10,r=10,t=60,b=120),
-                coloraxis_showscale=False
             )
-            fig_bar2.add_hline(y=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
-            st.plotly_chart(fig_bar2, use_container_width=True)
+            fig_line.add_hline(y=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
+            st.plotly_chart(fig_line, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
