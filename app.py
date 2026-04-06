@@ -754,13 +754,14 @@ st.session_state["_menu_idx"] = menu_options.index(menu)
 
 # ── USER & LOGOUT ──
 st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
+_admin_badge = '<div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>' if current_user in ADMIN_USERS else ""
 st.sidebar.markdown(f"""
 <div style="padding:10px 16px 8px;border-top:0.5px solid rgba(255,255,255,0.07);margin-top:12px;">
     <div style="display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;">
         <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;">{user_initial}</div>
         <div style="flex:1;min-width:0;">
             <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{display_name}</div>
-            {"<div style=\"font-size:10px;color:rgba(255,255,255,0.35);\">Administrator</div>" if current_user in ADMIN_USERS else ""}
+            {_admin_badge}
         </div>
     </div>
 </div>
