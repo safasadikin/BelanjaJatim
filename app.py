@@ -161,6 +161,11 @@ def show_auth_page():
             button[kind="actionButton"] {{ display: none !important; visibility: hidden !important; }}
             [class*="ActionButton"] {{ display: none !important; visibility: hidden !important; }}
             [class*="actionButton"] {{ display: none !important; visibility: hidden !important; }}
+            [class*="viewerBadge"] {{ display: none !important; visibility: hidden !important; }}
+            [class*="StatusWidget"] {{ display: none !important; visibility: hidden !important; }}
+            [class*="toolbarActions"] {{ display: none !important; visibility: hidden !important; }}
+            [data-testid="stToolbarActions"] {{ display: none !important; visibility: hidden !important; }}
+            div[class*="toolbar"] button {{ display: none !important; visibility: hidden !important; }}
             header[data-testid="stHeader"] {{ background: transparent !important; border: none !important; box-shadow: none !important; }}
             [data-testid="stHeader"] > * {{ display: none !important; }}
             button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
@@ -443,6 +448,12 @@ footer { display: none !important; visibility: hidden !important; }
 button[kind="actionButton"] { display: none !important; visibility: hidden !important; }
 [class*="ActionButton"] { display: none !important; visibility: hidden !important; }
 [class*="actionButton"] { display: none !important; visibility: hidden !important; }
+[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
+[class*="StatusWidget"] { display: none !important; visibility: hidden !important; }
+[class*="toolbarActions"] { display: none !important; visibility: hidden !important; }
+[data-testid="stToolbarActions"] { display: none !important; visibility: hidden !important; }
+div[class*="toolbar"] button { display: none !important; visibility: hidden !important; }
+.stApp > div:last-child > div:last-child { display: none !important; }
 button[title="View fullscreen"] { display: none !important; visibility: hidden !important; }
 button[data-testid="StyledFullScreenButton"] { display: none !important; visibility: hidden !important; }
 </style>
