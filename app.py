@@ -184,9 +184,10 @@ def show_auth_page():
             st.success(st.session_state.pop("logout_message"))
         st.markdown("**Masuk ke aplikasi**")
         remembered_username = cookies.get("remember_username", "")
+        remembered_password = cookies.get("remember_password", "")
         username = st.text_input("Username", value=remembered_username, key="login_username_unique")
-        password = st.text_input("Password", type="password", key="login_password_unique")
-        remember_me = st.checkbox("Ingat saya di perangkat ini", value=bool(remembered_username))
+        password = st.text_input("Password", type="password", value=remembered_password, key="login_password_unique")
+        remember_me = st.checkbox("Ingat saya", value=bool(remembered_username and remembered_password))
 
         if st.button("Masuk", type="primary", use_container_width=True):
             users = load_users()
@@ -197,8 +198,10 @@ def show_auth_page():
                     st.session_state["current_user"] = username
                     if remember_me:
                         cookies["remember_username"] = username
+                        cookies["remember_password"] = password
                     else:
                         cookies.pop("remember_username", None)
+                        cookies.pop("remember_password", None)
                     cookies.save()
                     nama = users[username].get("nama_lengkap", username)
                     import time
