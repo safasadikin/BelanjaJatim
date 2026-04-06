@@ -165,10 +165,14 @@ def show_auth_page():
         pass
 
     try:
-        logo = Image.open("Logo Provinsi Jawa Timur.png")
-        col1, col2, col3 = st.columns([1, 2, 1])
-        with col2:
-            st.image(logo, use_container_width=True)
+        import base64 as _b64
+        with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
+            _logo_b64 = _b64.b64encode(_f.read()).decode()
+        st.markdown(f"""
+            <div style="display:flex;justify-content:center;margin-bottom:-30px;">
+                <img src="data:image/png;base64,{_logo_b64}" style="width:180px;pointer-events:none;" />
+            </div>
+        """, unsafe_allow_html=True)
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
