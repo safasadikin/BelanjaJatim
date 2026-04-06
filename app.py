@@ -1245,6 +1245,8 @@ if "Upload Data" in menu:
         </div>
         """, unsafe_allow_html=True)
 
+        HARI_ID = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+
         for hf in history_files[:5]:
             info      = get_file_info(hf)
             fname     = hf.name
@@ -1252,6 +1254,15 @@ if "Upload Data" in menu:
             tgl_str   = info.get("tanggal_data", "–")
             # Tampilkan waktu upload real-time dari timestamp di nama file
             upload_str = info.get("upload_time", info.get("modified_time", "–"))
+
+            # Tambahkan nama hari dalam Bahasa Indonesia
+            try:
+                upload_dt   = datetime.strptime(upload_str, "%d/%m/%Y %H:%M:%S")
+                nama_hari   = HARI_ID[upload_dt.weekday()]
+                upload_full = f"{nama_hari}, {upload_str}"
+            except Exception:
+                upload_full = upload_str
+
             is_last   = (hf == history_files[:5][-1])
             border    = "none" if is_last else "0.5px solid #f1f5f9"
             st.markdown(f"""
@@ -1260,7 +1271,7 @@ if "Upload Data" in menu:
                 <div style="flex:1;min-width:0;">
                     <div style="color:#0d1b2e;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
-                        Data: <b>{tgl_str}</b> &nbsp;·&nbsp; Diupload: <b>{upload_str}</b> &nbsp;·&nbsp; {size_str}
+                        Data: <b>{tgl_str}</b> &nbsp;·&nbsp; Diupload: <b>{upload_full}</b> &nbsp;·&nbsp; {size_str}
                     </div>
                 </div>
                 <div style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#16a34a;border:0.5px solid #bbf7d0;flex-shrink:0;">Tersimpan</div>
