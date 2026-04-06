@@ -774,7 +774,8 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
 
 if current_user in ADMIN_USERS:
     with st.sidebar.expander("⚙ Developer Tools", expanded=False):
-        if st.button("Clear Cache & Rerun", use_container_width=True):
+        st.caption("Hanya tersedia untuk akun admin.")
+        if st.button("🔄 Clear Cache & Rerun", use_container_width=True, key="dev_clear_cache"):
             st.cache_data.clear()
             st.rerun()
 
@@ -1894,9 +1895,5 @@ elif "History (BLUD)" in menu:
         st.rerun()
 
 # ───────────────────────────────────────────────
-#           DEBUG (hanya untuk admin)
+#           DEBUG — tombol sudah digabung di atas (sidebar expander)
 # ───────────────────────────────────────────────
-if current_user in ADMIN_USERS:
-    if st.sidebar.button("Clear Cache & Rerun"):
-        st.cache_data.clear()
-        st.rerun()
