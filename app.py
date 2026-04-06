@@ -288,11 +288,12 @@ def show_auth_page():
         st.markdown("**Lupa Password? Reset di sini**")
         if st.session_state.get("reset_success"): st.success(st.session_state.pop("reset_success"))
         if st.session_state.get("reset_error"):   st.error(st.session_state.pop("reset_error"))
-        with st.form(key="reset_form"):
-            reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
-            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
-            new_password_reset     = st.text_input("Password Baru", type="password", key="reset_pw_unique")
-            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
+        _reset_form_key = st.session_state.get("reset_form_counter", 0)
+        with st.form(key=f"reset_form_{_reset_form_key}"):
+            reset_username         = st.text_input("Username yang ingin direset", key=f"reset_username_unique_{_reset_form_key}")
+            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key=f"reset_hp_unique_{_reset_form_key}")
+            new_password_reset     = st.text_input("Password Baru", type="password", key=f"reset_pw_unique_{_reset_form_key}")
+            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key=f"reset_confirm_unique_{_reset_form_key}")
             reset_button           = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
         if reset_button:
             error_msg = ""
@@ -313,6 +314,7 @@ def show_auth_page():
                     hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     users[reset_username]["password"] = hashed
                     save_user(reset_username, users[reset_username])
+                    st.session_state["reset_form_counter"] = _reset_form_key + 1
                     st.session_state["reset_success"] = f"**Password berhasil direset!** Silakan login 🎉"; st.rerun()
     st.markdown("---")
 
