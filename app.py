@@ -155,6 +155,8 @@ def show_auth_page():
             [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
             #MainMenu {{ display: none !important; visibility: hidden !important; }}
             footer {{ display: none !important; visibility: hidden !important; }}
+            header[data-testid="stHeader"] {{ background: transparent !important; border: none !important; box-shadow: none !important; }}
+            [data-testid="stHeader"] > * {{ display: none !important; }}
             button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
             button[data-testid="StyledFullScreenButton"] {{ display: none !important; visibility: hidden !important; }}
             </style>
