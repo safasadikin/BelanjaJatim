@@ -154,12 +154,11 @@ def show_auth_page():
             [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
             [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
             #MainMenu {{ display: none !important; visibility: hidden !important; }}
-            header[data-testid="stHeader"] {{ display: none !important; visibility: hidden !important; }}
             footer {{ display: none !important; visibility: hidden !important; }}
             [data-testid="stImageContainer"] button {{ display: none !important; visibility: hidden !important; }}
             [data-testid="stFullScreenFrame"] {{ display: none !important; visibility: hidden !important; }}
             button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
-            button[aria-label="Fullscreen"] {{ display: none !important; visibility: hidden !important; }}
+            button[kind="fullScreenButton"] {{ display: none !important; visibility: hidden !important; }}
             </style>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
@@ -418,12 +417,11 @@ st.markdown("""
 [data-testid="stToolbar"] { display: none !important; visibility: hidden !important; }
 [data-testid="stDecoration"] { display: none !important; visibility: hidden !important; }
 #MainMenu { display: none !important; visibility: hidden !important; }
-header[data-testid="stHeader"] { display: none !important; visibility: hidden !important; }
 footer { display: none !important; visibility: hidden !important; }
 [data-testid="stImageContainer"] button { display: none !important; visibility: hidden !important; }
 [data-testid="stFullScreenFrame"] { display: none !important; visibility: hidden !important; }
 button[title="View fullscreen"] { display: none !important; visibility: hidden !important; }
-button[aria-label="Fullscreen"] { display: none !important; visibility: hidden !important; }
+button[kind="fullScreenButton"] { display: none !important; visibility: hidden !important; }
 </style>
 """, unsafe_allow_html=True)
 
