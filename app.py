@@ -155,6 +155,11 @@ def show_auth_page():
             [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
             #MainMenu {{ display: none !important; visibility: hidden !important; }}
             footer {{ display: none !important; visibility: hidden !important; }}
+            div[data-testid="stToolbarActions"] {{ display:none !important; visibility:hidden !important; }}
+            .stDeployButton {{ display:none !important; visibility:hidden !important; }}
+            [data-testid="stDeployButton"] {{ display:none !important; visibility:hidden !important; }}
+            div[style*="position: fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
+            div[style*="position:fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
             [data-testid="stActionButtonIcon"] {{ display: none !important; visibility: hidden !important; }}
             .stActionButton {{ display: none !important; visibility: hidden !important; }}
             [data-testid="baseButton-actionButton"] {{ display: none !important; visibility: hidden !important; }}
@@ -349,6 +354,26 @@ if not st.session_state["logged_in"]:
 # ───────────────────────────────────────────────
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
+
+# ── Sembunyikan tombol pojok kanan bawah Streamlit ──
+st.markdown("""
+<style>
+/* Sembunyikan semua fixed element di bottom-right (tombol Streamlit) */
+iframe[title="streamlit_analytics2.components.streamlit_analytics2"] { display:none !important; }
+div[data-testid="stToolbarActions"] { display:none !important; visibility:hidden !important; }
+div[class*="stToolbarActions"] { display:none !important; visibility:hidden !important; }
+section[data-testid="stToolbar"] { display:none !important; visibility:hidden !important; }
+.stDeployButton { display:none !important; visibility:hidden !important; }
+[data-testid="stDeployButton"] { display:none !important; visibility:hidden !important; }
+
+/* Nuclear: sembunyikan semua element fixed di pojok kanan bawah */
+div[style*="position: fixed"][style*="bottom"][style*="right"],
+div[style*="position:fixed"][style*="bottom"][style*="right"] {
+    display: none !important;
+    visibility: hidden !important;
+}
+</style>
+""", unsafe_allow_html=True)
 
 st.markdown("""
 <style>
