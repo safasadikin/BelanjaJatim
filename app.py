@@ -1285,11 +1285,52 @@ elif "Dashboard (Non-BLUD)" in menu:
     df_pct["PCT"]       = (df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
     df_top = df_pct.sort_values("PCT", ascending=False).head(10)
     if not df_top.empty:
+        # ── Grafik 1: Bar Chart (existing) ──
         fig = px.bar(df_top, x="PCT", y="NAMA_SKPD", orientation="h", title="Top 10 Non-BLUD", height=500, text="PCT", color_discrete_sequence=["#EF553B"])
         fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside', textfont_size=12, cliponaxis=False, hovertemplate="<b>%{y}</b><br>PCT: %{x:.1f}%", customdata=df_top[["ANGGARAN","REALISASI"]].values)
         fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
         fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
         st.plotly_chart(fig, use_container_width=True)
+
+        # ── Grafik 2: Donut Chart + Treemap berdampingan ──
+        col_g1, col_g2 = st.columns(2)
+        with col_g1:
+            fig_donut = px.pie(
+                df_top, values="PCT", names="NAMA_SKPD",
+                title="Proporsi % Realisasi — Top 10 Non-BLUD",
+                hole=0.45, height=480,
+                color_discrete_sequence=px.colors.sequential.RdBu
+            )
+            fig_donut.update_traces(textposition="inside", textinfo="percent+label", hovertemplate="<b>%{label}</b><br>PCT: %{value:.1f}%")
+            fig_donut.update_layout(
+                showlegend=False,
+                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
+                font=dict(color="#e0e0e0"),
+                margin=dict(l=10,r=10,t=60,b=10),
+                annotations=[dict(text="Top 10", x=0.5, y=0.5, font_size=16, showarrow=False, font_color="#e0e0e0")]
+            )
+            st.plotly_chart(fig_donut, use_container_width=True)
+
+        with col_g2:
+            fig_tree = px.treemap(
+                df_top, path=["NAMA_SKPD"], values="PCT",
+                title="Treemap % Realisasi — Top 10 Non-BLUD",
+                height=480,
+                color="PCT",
+                color_continuous_scale="RdYlGn",
+                range_color=[df_top["PCT"].min(), df_top["PCT"].max()]
+            )
+            fig_tree.update_traces(
+                texttemplate="<b>%{label}</b><br>%{value:.1f}%",
+                hovertemplate="<b>%{label}</b><br>PCT: %{value:.1f}%"
+            )
+            fig_tree.update_layout(
+                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
+                font=dict(color="#e0e0e0"),
+                margin=dict(l=10,r=10,t=60,b=10),
+                coloraxis_showscale=False
+            )
+            st.plotly_chart(fig_tree, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
