@@ -170,7 +170,7 @@ def show_auth_page():
             _logo_b64 = _b64.b64encode(_f.read()).decode()
         st.markdown(f"""
             <div style="display:flex;justify-content:center;margin-bottom:-30px;">
-                <img src="data:image/png;base64,{_logo_b64}" style="width:350px;pointer-events:none;" />
+                <img src="data:image/png;base64,{_logo_b64}" style="width:400px;pointer-events:none;" />
             </div>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
