@@ -1316,58 +1316,62 @@ elif "Dashboard (Non-BLUD)" in menu:
 
         with col_g2:
             import plotly.graph_objects as go
-            df_lolly = df_top.sort_values("PCT", ascending=True).reset_index(drop=True)
-            def _color(v):
-                if v >= 80: return "#2ecc71"
-                elif v >= 50: return "#f39c12"
-                else: return "#e74c3c"
-            colors_l = [_color(v) for v in df_lolly["PCT"]]
+            df_ranked = df_top.sort_values("PCT", ascending=True).reset_index(drop=True)
+            def _clr(v):
+                if v >= 80: return "#16a34a"
+                elif v >= 50: return "#d97706"
+                else: return "#dc2626"
+            colors_r = [_clr(v) for v in df_ranked["PCT"]]
 
-            fig_lolly = go.Figure()
-            # Garis horizontal (batang lollipop)
-            for i, row in df_lolly.iterrows():
-                fig_lolly.add_shape(
-                    type="line",
-                    x0=0, x1=row["PCT"], y0=i, y1=i,
-                    line=dict(color=colors_l[i], width=2.5)
-                )
-            # Titik ujung (kepala lollipop)
-            fig_lolly.add_trace(go.Scatter(
-                x=df_lolly["PCT"],
-                y=df_lolly["NAMA_SKPD"],
-                mode="markers+text",
-                text=[f"<b>{v:.1f}%</b>" for v in df_lolly["PCT"]],
-                textposition="middle right",
-                textfont=dict(size=10, color="#ffffff"),
-                marker=dict(size=14, color=colors_l, line=dict(color="white", width=2)),
+            fig_ranked = go.Figure()
+            fig_ranked.add_trace(go.Bar(
+                x=df_ranked["PCT"],
+                y=df_ranked["NAMA_SKPD"],
+                orientation="h",
+                marker=dict(
+                    color=df_ranked["PCT"],
+                    colorscale=[
+                        [0.0,  "#dc2626"],
+                        [0.4,  "#f59e0b"],
+                        [0.7,  "#16a34a"],
+                        [1.0,  "#059669"],
+                    ],
+                    cmin=0, cmax=100,
+                    line=dict(color="rgba(255,255,255,0.08)", width=0.5)
+                ),
+                text=[f"{v:.1f}%" for v in df_ranked["PCT"]],
+                textposition="outside",
+                textfont=dict(size=11, color="#ffffff"),
                 hovertemplate="<b>%{y}</b><br>Realisasi: <b>%{x:.1f}%</b><extra></extra>",
+                width=0.6,
             ))
-            fig_lolly.update_layout(
-                title=dict(text="Lollipop % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
+            fig_ranked.update_layout(
+                title=dict(text="Ranking % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
                 height=480,
                 xaxis=dict(
                     title="Persentase (%)",
-                    range=[0, max(130, df_lolly["PCT"].max()+25)],
-                    gridcolor="rgba(255,255,255,0.07)",
-                    tickfont=dict(color="#aaaaaa"),
+                    range=[0, max(130, df_ranked["PCT"].max()+20)],
+                    gridcolor="rgba(255,255,255,0.06)",
+                    tickfont=dict(color="#aaaaaa", size=10),
                     zeroline=False,
+                    dtick=20,
                 ),
                 yaxis=dict(
                     tickfont=dict(size=9, color="#cccccc"),
-                    gridcolor="rgba(255,255,255,0.04)",
+                    gridcolor="rgba(0,0,0,0)",
                 ),
                 plot_bgcolor="#0e1117",
                 paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
-                margin=dict(l=10, r=70, t=60, b=40),
-                showlegend=False,
+                margin=dict(l=10, r=80, t=60, b=40),
+                bargap=0.25,
             )
-            fig_lolly.add_vline(
-                x=100, line_dash="dot", line_color="#ff4b4b", line_width=2,
-                annotation_text="🎯 100%", annotation_position="top",
-                annotation_font=dict(color="#ff4b4b", size=11)
+            fig_ranked.add_vline(
+                x=100, line_dash="dash", line_color="#ff4b4b", line_width=1.5,
+                annotation_text="Target 100%", annotation_position="top",
+                annotation_font=dict(color="#ff4b4b", size=10)
             )
-            st.plotly_chart(fig_lolly, use_container_width=True)
+            st.plotly_chart(fig_ranked, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
