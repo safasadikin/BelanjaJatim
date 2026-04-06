@@ -155,6 +155,12 @@ def show_auth_page():
             [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
             #MainMenu {{ display: none !important; visibility: hidden !important; }}
             footer {{ display: none !important; visibility: hidden !important; }}
+            [data-testid="stActionButtonIcon"] {{ display: none !important; visibility: hidden !important; }}
+            .stActionButton {{ display: none !important; visibility: hidden !important; }}
+            [data-testid="baseButton-actionButton"] {{ display: none !important; visibility: hidden !important; }}
+            button[kind="actionButton"] {{ display: none !important; visibility: hidden !important; }}
+            [class*="ActionButton"] {{ display: none !important; visibility: hidden !important; }}
+            [class*="actionButton"] {{ display: none !important; visibility: hidden !important; }}
             header[data-testid="stHeader"] {{ background: transparent !important; border: none !important; box-shadow: none !important; }}
             [data-testid="stHeader"] > * {{ display: none !important; }}
             button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
@@ -428,6 +434,15 @@ st.markdown("""
 [data-testid="stDecoration"] { display: none !important; visibility: hidden !important; }
 #MainMenu { display: none !important; visibility: hidden !important; }
 footer { display: none !important; visibility: hidden !important; }
+[data-testid="stActionButtonIcon"] { display: none !important; visibility: hidden !important; }
+.stActionButton { display: none !important; visibility: hidden !important; }
+[data-testid="baseButton-actionButton"] { display: none !important; visibility: hidden !important; }
+#stDecoration { display: none !important; visibility: hidden !important; }
+.viewerBadge_container__r5tak { display: none !important; visibility: hidden !important; }
+.styles_viewerBadge__CvC9N { display: none !important; visibility: hidden !important; }
+button[kind="actionButton"] { display: none !important; visibility: hidden !important; }
+[class*="ActionButton"] { display: none !important; visibility: hidden !important; }
+[class*="actionButton"] { display: none !important; visibility: hidden !important; }
 button[title="View fullscreen"] { display: none !important; visibility: hidden !important; }
 button[data-testid="StyledFullScreenButton"] { display: none !important; visibility: hidden !important; }
 </style>
