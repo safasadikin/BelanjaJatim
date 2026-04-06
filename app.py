@@ -1312,25 +1312,32 @@ elif "Dashboard (Non-BLUD)" in menu:
             st.plotly_chart(fig_donut, use_container_width=True)
 
         with col_g2:
-            fig_tree = px.treemap(
-                df_top, path=["NAMA_SKPD"], values="PCT",
-                title="Treemap % Realisasi — Top 10 Non-BLUD",
+            fig_bar2 = px.bar(
+                df_top.sort_values("PCT", ascending=True),
+                x="NAMA_SKPD", y="PCT",
+                title="Persentase Realisasi — Top 10 Non-BLUD",
                 height=480,
+                text="PCT",
                 color="PCT",
                 color_continuous_scale="RdYlGn",
-                range_color=[df_top["PCT"].min(), df_top["PCT"].max()]
             )
-            fig_tree.update_traces(
-                texttemplate="<b>%{label}</b><br>%{value:.1f}%",
-                hovertemplate="<b>%{label}</b><br>PCT: %{value:.1f}%"
+            fig_bar2.update_traces(
+                texttemplate="%{y:.1f}%",
+                textposition="outside",
+                hovertemplate="<b>%{x}</b><br>PCT: %{y:.1f}%"
             )
-            fig_tree.update_layout(
+            fig_bar2.update_layout(
+                xaxis_title="Nama SKPD",
+                yaxis_title="Persentase (%)",
+                xaxis=dict(tickangle=-35, tickfont=dict(size=9)),
+                yaxis=dict(range=[0, max(120, df_top["PCT"].max()+15)]),
                 plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
-                margin=dict(l=10,r=10,t=60,b=10),
+                margin=dict(l=10,r=10,t=60,b=120),
                 coloraxis_showscale=False
             )
-            st.plotly_chart(fig_tree, use_container_width=True)
+            fig_bar2.add_hline(y=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
+            st.plotly_chart(fig_bar2, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
