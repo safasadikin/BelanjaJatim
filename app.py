@@ -1316,62 +1316,51 @@ elif "Dashboard (Non-BLUD)" in menu:
 
         with col_g2:
             import plotly.graph_objects as go
-            df_ranked = df_top.sort_values("PCT", ascending=True).reset_index(drop=True)
-            def _clr(v):
-                if v >= 80: return "#16a34a"
-                elif v >= 50: return "#d97706"
-                else: return "#dc2626"
-            colors_r = [_clr(v) for v in df_ranked["PCT"]]
+            df_ranked = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
 
-            fig_ranked = go.Figure()
-            fig_ranked.add_trace(go.Bar(
-                x=df_ranked["PCT"],
-                y=df_ranked["NAMA_SKPD"],
-                orientation="h",
-                marker=dict(
-                    color=df_ranked["PCT"],
-                    colorscale=[
-                        [0.0,  "#dc2626"],
-                        [0.4,  "#f59e0b"],
-                        [0.7,  "#16a34a"],
-                        [1.0,  "#059669"],
-                    ],
-                    cmin=0, cmax=100,
-                    line=dict(color="rgba(255,255,255,0.08)", width=0.5)
-                ),
-                text=[f"{v:.1f}%" for v in df_ranked["PCT"]],
-                textposition="outside",
-                textfont=dict(size=11, color="#ffffff"),
-                hovertemplate="<b>%{y}</b><br>Realisasi: <b>%{x:.1f}%</b><extra></extra>",
-                width=0.6,
+            # Heatmap: 1 kolom per SKPD, nilai = PCT
+            fig_heat = go.Figure(go.Heatmap(
+                z=[df_ranked["PCT"].tolist()],
+                x=df_ranked["NAMA_SKPD"].tolist(),
+                y=["% Realisasi"],
+                colorscale=[
+                    [0.0, "#7f1d1d"],
+                    [0.3, "#dc2626"],
+                    [0.55, "#f59e0b"],
+                    [0.75, "#16a34a"],
+                    [1.0, "#059669"],
+                ],
+                zmin=0, zmax=100,
+                text=[[f"{v:.1f}%" for v in df_ranked["PCT"].tolist()]],
+                texttemplate="%{text}",
+                textfont=dict(size=12, color="white"),
+                hovertemplate="<b>%{x}</b><br>Realisasi: <b>%{z:.1f}%</b><extra></extra>",
+                showscale=True,
+                colorbar=dict(
+                    title="%",
+                    tickfont=dict(color="#aaaaaa"),
+                    titlefont=dict(color="#aaaaaa"),
+                    thickness=12,
+                    len=0.8,
+                )
             ))
-            fig_ranked.update_layout(
-                title=dict(text="Ranking % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
+            fig_heat.update_layout(
+                title=dict(text="Heatmap % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
                 height=480,
                 xaxis=dict(
-                    title="Persentase (%)",
-                    range=[0, max(130, df_ranked["PCT"].max()+20)],
-                    gridcolor="rgba(255,255,255,0.06)",
-                    tickfont=dict(color="#aaaaaa", size=10),
-                    zeroline=False,
-                    dtick=20,
+                    tickangle=-35,
+                    tickfont=dict(size=9, color="#cccccc"),
+                    side="bottom",
                 ),
                 yaxis=dict(
-                    tickfont=dict(size=9, color="#cccccc"),
-                    gridcolor="rgba(0,0,0,0)",
+                    tickfont=dict(size=11, color="#cccccc"),
                 ),
                 plot_bgcolor="#0e1117",
                 paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
-                margin=dict(l=10, r=80, t=60, b=40),
-                bargap=0.25,
+                margin=dict(l=10, r=60, t=60, b=140),
             )
-            fig_ranked.add_vline(
-                x=100, line_dash="dash", line_color="#ff4b4b", line_width=1.5,
-                annotation_text="Target 100%", annotation_position="top",
-                annotation_font=dict(color="#ff4b4b", size=10)
-            )
-            st.plotly_chart(fig_ranked, use_container_width=True)
+            st.plotly_chart(fig_heat, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
