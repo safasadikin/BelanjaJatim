@@ -438,6 +438,9 @@ import base64
 current_user = st.session_state.get('current_user', 'User')
 user_initial = current_user[0].upper() if current_user else 'U'
 
+# ── Daftar username yang boleh akses Developer Tools ──
+ADMIN_USERS = ["admin"]  # tambahkan username admin lain di sini
+
 logo_html = ""
 try:
     with open("Logo Provinsi Jawa Timur.png", "rb") as f:
@@ -769,10 +772,11 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
     st.query_params.clear()
     st.rerun()
 
-with st.sidebar.expander("⚙ Developer Tools", expanded=False):
-    if st.button("Clear Cache & Rerun", use_container_width=True):
-        st.cache_data.clear()
-        st.rerun()
+if current_user in ADMIN_USERS:
+    with st.sidebar.expander("⚙ Developer Tools", expanded=False):
+        if st.button("Clear Cache & Rerun", use_container_width=True):
+            st.cache_data.clear()
+            st.rerun()
 
 # ───────────────────────────────────────────────
 #           UPLOAD DATA
@@ -1890,8 +1894,9 @@ elif "History (BLUD)" in menu:
         st.rerun()
 
 # ───────────────────────────────────────────────
-#           DEBUG
+#           DEBUG (hanya untuk admin)
 # ───────────────────────────────────────────────
-if st.sidebar.button("Clear Cache & Rerun"):
-    st.cache_data.clear()
-    st.rerun()
+if current_user in ADMIN_USERS:
+    if st.sidebar.button("Clear Cache & Rerun"):
+        st.cache_data.clear()
+        st.rerun()
