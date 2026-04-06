@@ -1313,31 +1313,61 @@ elif "Dashboard (Non-BLUD)" in menu:
 
         with col_g2:
             df_line = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
-            fig_line = px.line(
-                df_line, x="NAMA_SKPD", y="PCT",
-                title="Tren % Realisasi — Top 10 Non-BLUD",
-                height=480,
-                text="PCT",
-                markers=True,
-                color_discrete_sequence=["#EF553B"]
-            )
-            fig_line.update_traces(
-                texttemplate="%{y:.1f}%",
+            import plotly.graph_objects as go
+            fig_line = go.Figure()
+
+            # Area fill di bawah garis
+            fig_line.add_trace(go.Scatter(
+                x=df_line["NAMA_SKPD"],
+                y=df_line["PCT"],
+                mode="lines+markers+text",
+                text=[f"{v:.1f}%" for v in df_line["PCT"]],
                 textposition="top center",
-                hovertemplate="<b>%{x}</b><br>PCT: %{y:.1f}%",
-                line=dict(width=3),
-                marker=dict(size=10)
-            )
+                textfont=dict(size=11, color="#ffffff", family="Arial Black"),
+                hovertemplate="<b>%{x}</b><br>Realisasi: <b>%{y:.1f}%</b><extra></extra>",
+                line=dict(color="#EF553B", width=3, shape="spline", smoothing=1.3),
+                marker=dict(
+                    size=12,
+                    color=df_line["PCT"],
+                    colorscale="RdYlGn",
+                    showscale=False,
+                    line=dict(color="white", width=2)
+                ),
+                fill="tozeroy",
+                fillcolor="rgba(239,85,59,0.15)",
+            ))
+
             fig_line.update_layout(
-                xaxis_title="Nama SKPD",
-                yaxis_title="Persentase (%)",
-                xaxis=dict(tickangle=-35, tickfont=dict(size=9)),
-                yaxis=dict(range=[0, max(120, df_line["PCT"].max()+15)]),
-                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
+                title=dict(text="Tren % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
+                height=480,
+                xaxis=dict(
+                    tickangle=-35,
+                    tickfont=dict(size=9, color="#aaaaaa"),
+                    gridcolor="rgba(255,255,255,0.05)",
+                    showline=True, linecolor="rgba(255,255,255,0.2)"
+                ),
+                yaxis=dict(
+                    title="Persentase (%)",
+                    range=[0, max(130, df_line["PCT"].max()+20)],
+                    gridcolor="rgba(255,255,255,0.07)",
+                    tickfont=dict(color="#aaaaaa"),
+                    showline=True, linecolor="rgba(255,255,255,0.2)"
+                ),
+                plot_bgcolor="#0e1117",
+                paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
-                margin=dict(l=10,r=10,t=60,b=120),
+                margin=dict(l=10, r=20, t=60, b=130),
+                hovermode="x unified"
             )
-            fig_line.add_hline(y=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
+            fig_line.add_hline(
+                y=100,
+                line_dash="dot",
+                line_color="#ff4b4b",
+                line_width=2,
+                annotation_text="🎯 Target 100%",
+                annotation_position="top right",
+                annotation_font=dict(color="#ff4b4b", size=11)
+            )
             st.plotly_chart(fig_line, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
