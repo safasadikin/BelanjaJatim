@@ -601,36 +601,88 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
     buffer      = io.BytesIO()
     is_blud     = (str(tipe).lower() == "blud")
     is_gabungan = (str(tipe).lower() == "gabungan")
-    page_size   = landscape(A4) if is_blud or is_gabungan else A4
-    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
+    # Semua tipe pakai landscape agar lebih lega
+    page_size   = landscape(A4)
+    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=25, leftMargin=25, topMargin=30, bottomMargin=30)
     elements = []; styles = getSampleStyleSheet()
+
+    # Style untuk wrap text
+    wrap_style = styles["Normal"].clone("wrap_style")
+    wrap_style.fontSize = 7
+    wrap_style.leading  = 9
+
+    header_style = styles["Normal"].clone("header_style")
+    header_style.fontSize   = 7
+    header_style.leading    = 9
+    header_style.textColor  = colors.white
+    header_style.fontName   = "Helvetica-Bold"
+    header_style.alignment  = 1  # center
+
     tipe_label = "GABUNGAN (NON-BLUD + BLUD)" if is_gabungan else ("BLUD" if is_blud else "NON-BLUD")
     elements.append(Paragraph(f"LAPORAN REALISASI BELANJA JAWA TIMUR TA {tahun_anggaran} ({tipe_label})", styles["Heading1"]))
     elements.append(Paragraph(f"Data per tanggal: {tanggal_impor}", styles["Normal"]))
     elements.append(Paragraph(f"Dicetak pada: {now_wib().strftime('%d/%m/%Y %H:%M:%S')}", styles["Normal"]))
     elements.append(Spacer(1, 12))
+
     summary_data  = [["Keterangan","Nilai"],["Total Anggaran",f"Rp {total_ang:,.0f}".replace(",",".")],["Total Realisasi",f"Rp {total_real:,.0f}".replace(",",".")],["% Realisasi",f"{total_persen:.2f}%"]]
     summary_table = Table(summary_data, colWidths=[2.5*inch, 3*inch])
-    summary_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("ALIGN",(0,0),(-1,-1),"CENTER"),("GRID",(0,0),(-1,-1),0.5,colors.grey),("FONTSIZE",(0,0),(-1,-1),9),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])]))
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
+        ("ALIGN",(0,0),(-1,-1),"CENTER"),
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey),
+        ("FONTSIZE",(0,0),(-1,-1),9),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])
+    ]))
     elements.append(summary_table); elements.append(Spacer(1,16))
+
+    # Lebar halaman landscape A4 = 841.89pt - margin kiri kanan 50pt = ~791pt
     if is_gabungan or is_blud:
         headers    = ["No","Tipe","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.4*inch,0.8*inch,1.0*inch,2.6*inch,1.4*inch,1.4*inch,0.7*inch]
+        col_widths = [0.35*inch, 0.7*inch, 1.2*inch, 3.2*inch, 1.6*inch, 1.6*inch, 0.7*inch]
     else:
-        headers    = ["No","No Asal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.35*inch,0.4*inch,1.0*inch,2.3*inch,1.4*inch,1.4*inch,0.7*inch]
-    table_data = [headers]
+        headers    = ["No","No\nAsal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
+        col_widths = [0.3*inch, 0.4*inch, 1.3*inch, 3.0*inch, 1.65*inch, 1.65*inch, 0.65*inch]
+
+    # Buat header row dengan Paragraph agar bisa wrap
+    header_row = [Paragraph(h, header_style) for h in headers]
+    table_data = [header_row]
+
     df_reset = df.reset_index(drop=True)
     for urut, (_, row) in enumerate(df_reset.iterrows(), start=1):
-        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")[:40]
+        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")
         no_asal   = str(int(row["No"])) if "No" in row and str(row["No"]).replace(".0","").isdigit() else str(urut)
+        anggaran  = f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",",".")
+        realisasi = f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",",".")
+        persen    = f"{float(row.get('PROSENTASE',0) or 0):.2f}%"
+
+        # Nama SKPD pakai Paragraph agar bisa word wrap
+        nama_para = Paragraph(skpd_name, wrap_style)
+
         if is_gabungan or is_blud:
-            row_list = [str(urut),str(row.get("TIPE","")),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [str(urut), str(row.get("TIPE","")), str(row.get("KODE SKPD","")), nama_para, anggaran, realisasi, persen]
         else:
-            row_list = [str(urut),no_asal,str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [str(urut), no_asal, str(row.get("KODE SKPD","")), nama_para, anggaran, realisasi, persen]
         table_data.append(row_list)
+
     detail_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    detail_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),7),("ALIGN",(0,0),(-1,-1),"CENTER"),("ALIGN",(3,1),(3,-1),"LEFT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("GRID",(0,0),(-1,-1),0.4,colors.grey),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3)]))
+    detail_table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
+        ("FONTSIZE",(0,0),(-1,-1),7),
+        ("ALIGN",(0,0),(-1,-1),"CENTER"),
+        ("ALIGN",(3,1),(3,-1),"LEFT"),
+        ("ALIGN",(4,1),(5,-1),"RIGHT"),
+        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+        ("GRID",(0,0),(-1,-1),0.4,colors.grey),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),
+        ("TOPPADDING",(0,0),(-1,-1),4),
+        ("BOTTOMPADDING",(0,0),(-1,-1),4),
+        ("LEFTPADDING",(0,0),(-1,-1),4),
+        ("RIGHTPADDING",(0,0),(-1,-1),4),
+    ]))
     elements.append(detail_table)
     doc.build(elements); buffer.seek(0)
     return buffer.getvalue()
