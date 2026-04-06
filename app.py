@@ -1316,56 +1316,58 @@ elif "Dashboard (Non-BLUD)" in menu:
 
         with col_g2:
             import plotly.graph_objects as go
-            df_bubble = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
-            # Warna per bar: merah jika < 50, kuning jika 50-80, hijau jika > 80
+            df_lolly = df_top.sort_values("PCT", ascending=True).reset_index(drop=True)
             def _color(v):
                 if v >= 80: return "#2ecc71"
                 elif v >= 50: return "#f39c12"
                 else: return "#e74c3c"
-            colors_b = [_color(v) for v in df_bubble["PCT"]]
+            colors_l = [_color(v) for v in df_lolly["PCT"]]
 
-            fig_bubble = go.Figure()
-            fig_bubble.add_trace(go.Scatter(
-                x=df_bubble["PCT"],
-                y=df_bubble["NAMA_SKPD"],
+            fig_lolly = go.Figure()
+            # Garis horizontal (batang lollipop)
+            for i, row in df_lolly.iterrows():
+                fig_lolly.add_shape(
+                    type="line",
+                    x0=0, x1=row["PCT"], y0=i, y1=i,
+                    line=dict(color=colors_l[i], width=2.5)
+                )
+            # Titik ujung (kepala lollipop)
+            fig_lolly.add_trace(go.Scatter(
+                x=df_lolly["PCT"],
+                y=df_lolly["NAMA_SKPD"],
                 mode="markers+text",
-                text=[f"{v:.1f}%" for v in df_bubble["PCT"]],
+                text=[f"<b>{v:.1f}%</b>" for v in df_lolly["PCT"]],
                 textposition="middle right",
-                textfont=dict(size=11, color="#ffffff"),
+                textfont=dict(size=10, color="#ffffff"),
+                marker=dict(size=14, color=colors_l, line=dict(color="white", width=2)),
                 hovertemplate="<b>%{y}</b><br>Realisasi: <b>%{x:.1f}%</b><extra></extra>",
-                marker=dict(
-                    size=df_bubble["PCT"].apply(lambda v: max(20, min(60, v * 0.55))),
-                    color=colors_b,
-                    opacity=0.85,
-                    line=dict(color="white", width=1.5),
-                ),
             ))
-            fig_bubble.update_layout(
-                title=dict(text="Bubble % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
+            fig_lolly.update_layout(
+                title=dict(text="Lollipop % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
                 height=480,
                 xaxis=dict(
                     title="Persentase (%)",
-                    range=[0, max(130, df_bubble["PCT"].max()+25)],
+                    range=[0, max(130, df_lolly["PCT"].max()+25)],
                     gridcolor="rgba(255,255,255,0.07)",
                     tickfont=dict(color="#aaaaaa"),
                     zeroline=False,
                 ),
                 yaxis=dict(
-                    autorange="reversed",
                     tickfont=dict(size=9, color="#cccccc"),
                     gridcolor="rgba(255,255,255,0.04)",
                 ),
                 plot_bgcolor="#0e1117",
                 paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
-                margin=dict(l=10, r=60, t=60, b=40),
+                margin=dict(l=10, r=70, t=60, b=40),
+                showlegend=False,
             )
-            fig_bubble.add_vline(
+            fig_lolly.add_vline(
                 x=100, line_dash="dot", line_color="#ff4b4b", line_width=2,
                 annotation_text="🎯 100%", annotation_position="top",
                 annotation_font=dict(color="#ff4b4b", size=11)
             )
-            st.plotly_chart(fig_bubble, use_container_width=True)
+            st.plotly_chart(fig_lolly, use_container_width=True)
 
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
