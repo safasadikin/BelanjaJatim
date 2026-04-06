@@ -1318,7 +1318,6 @@ elif "Dashboard (Non-BLUD)" in menu:
             import plotly.graph_objects as go
             df_ranked = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
 
-            # Heatmap: 1 kolom per SKPD, nilai = PCT
             fig_heat = go.Figure(go.Heatmap(
                 z=[df_ranked["PCT"].tolist()],
                 x=df_ranked["NAMA_SKPD"].tolist(),
@@ -1333,16 +1332,9 @@ elif "Dashboard (Non-BLUD)" in menu:
                 zmin=0, zmax=100,
                 text=[[f"{v:.1f}%" for v in df_ranked["PCT"].tolist()]],
                 texttemplate="%{text}",
-                textfont=dict(size=12, color="white"),
+                textfont={"size": 12, "color": "white"},
                 hovertemplate="<b>%{x}</b><br>Realisasi: <b>%{z:.1f}%</b><extra></extra>",
                 showscale=True,
-                colorbar=dict(
-                    title="%",
-                    tickfont=dict(color="#aaaaaa"),
-                    titlefont=dict(color="#aaaaaa"),
-                    thickness=12,
-                    len=0.8,
-                )
             ))
             fig_heat.update_layout(
                 title=dict(text="Heatmap % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
