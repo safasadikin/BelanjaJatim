@@ -151,6 +151,11 @@ def show_auth_page():
             .block-container {{ background: transparent !important; padding-top: 10rem !important; margin-top: 0 !important; }}
             .stTextInput input {{ background: rgba(255,255,255,0.92) !important; font-weight: 600 !important; color: #111 !important; border: 1.5px solid #ccc !important; }}
             .stTabs [data-baseweb="tab"] {{ font-weight: 700 !important; }}
+            [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
+            [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
+            #MainMenu {{ display: none !important; visibility: hidden !important; }}
+            header[data-testid="stHeader"] {{ display: none !important; visibility: hidden !important; }}
+            footer {{ display: none !important; visibility: hidden !important; }}
             </style>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
@@ -406,6 +411,11 @@ st.markdown("""
     transition: all 0.15s;
 }
 .btn-history-link:hover { background: #dbeafe; }
+[data-testid="stToolbar"] { display: none !important; visibility: hidden !important; }
+[data-testid="stDecoration"] { display: none !important; visibility: hidden !important; }
+#MainMenu { display: none !important; visibility: hidden !important; }
+header[data-testid="stHeader"] { display: none !important; visibility: hidden !important; }
+footer { display: none !important; visibility: hidden !important; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -650,13 +660,13 @@ menu = st.sidebar.radio(
     menu_options,
     index=default_idx,
     format_func=lambda x: {
-        "Upload Data (Non-BLUD)": "⬆  Upload Data Non-BLUD",
-        "Upload Data (BLUD)":     "⬆  Upload Data BLUD",
-        "Dashboard (Non-BLUD)":   "📊  Dashboard",
-        "Dashboard (BLUD)":       "📊  Dashboard",
-        "History (Non-BLUD)":     "📁  History",
-        "History (BLUD)":         "📁  History",
-        "Dashboard Gabungan":     "📊  Dashboard Gabungan",
+        "Upload Data (Non-BLUD)": "  Upload Data Non-BLUD",
+        "Upload Data (BLUD)":     "  Upload Data BLUD",
+        "Dashboard (Non-BLUD)":   "  Dashboard",
+        "Dashboard (BLUD)":       "  Dashboard",
+        "History (Non-BLUD)":     "  History",
+        "History (BLUD)":         "  History",
+        "Dashboard Gabungan":     "  Dashboard Gabungan",
     }.get(x, x),
     label_visibility="collapsed"
 )
@@ -750,7 +760,7 @@ if "Upload Data" in menu:
     st.markdown(f"""
     <div class="info-banner">
         <div class="info-banner-left">
-            <div class="info-banner-icon">{'📊' if tipe_upload == 'Non-BLUD' else '🏥'}</div>
+            <div class="info-banner-icon">{'' if tipe_upload == 'Non-BLUD' else '🏥'}</div>
             <div>
                 <div class="info-banner-title">Sistem Upload Realisasi Belanja — {tipe_upload}</div>
                 <div class="info-banner-sub">{tip_msg}</div>
@@ -774,13 +784,13 @@ if "Upload Data" in menu:
     st.markdown(f"""
     <div class="stat-grid">
         <div class="stat-card blue">
-            <span class="stat-icon">📅</span>
+            <span class="stat-icon"></span>
             <div class="stat-label">Tahun Anggaran</div>
             <div class="stat-val">{tahun_aktif}</div>
             <div class="stat-sub">Aktif saat ini</div>
         </div>
         <div class="stat-card green">
-            <span class="stat-icon">📁</span>
+            <span class="stat-icon"></span>
             <div class="stat-label">File Tersimpan</div>
             <div class="stat-val">{jumlah_file}</div>
             <div class="stat-sub">Total di history</div>
@@ -798,7 +808,7 @@ if "Upload Data" in menu:
     st.markdown("""
     <div class="pro-card">
         <div class="pro-card-header">
-            <span class="pro-card-title">📂 Import File Excel</span>
+            <span class="pro-card-title"> Import File Excel</span>
             <span style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#eff6ff;color:#2563eb;border:0.5px solid #bfdbfe;">Langkah 1 dari 2</span>
         </div>
     </div>
@@ -816,7 +826,7 @@ if "Upload Data" in menu:
                 st.success(f"✅ Tanggal terdeteksi dari nama file: **{tanggal_impor}**")
             else:
                 tanggal_impor = now_wib().strftime("%d/%m/%Y")
-                st.info(f"ℹ️ Tanggal tidak terdeteksi. Menggunakan hari ini: **{tanggal_impor}**")
+                st.info(f" Tanggal tidak terdeteksi. Menggunakan hari ini: **{tanggal_impor}**")
 
             st.session_state["tanggal_impor"] = tanggal_impor
 
@@ -1096,7 +1106,7 @@ if "Upload Data" in menu:
             st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
             st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
 
-            st.success(f"✅ Data berhasil diimport & disimpan ke history! ⏰ {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
+            st.success(f"✅ Data berhasil diimport & disimpan ke history!  {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
 
             # ── Preview: jika BLUD → tampilkan semua tabel generate ──
             if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed"):
@@ -1105,7 +1115,7 @@ if "Upload Data" in menu:
                     <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD Real_BLUD</span></div>
                 </div>
                 """, unsafe_allow_html=True)
-                tab_mu_b, tab_rb_b, tab_all_b = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja_BLUD", "📄 Data Lengkap BLUD"])
+                tab_mu_b, tab_rb_b, tab_all_b = st.tabs([" Table Master_Unit", " Table Real_Belanja_BLUD", " Data Lengkap BLUD"])
                 with tab_mu_b:
                     st.dataframe(st.session_state["df_master_unit_blud"], use_container_width=True, hide_index=True)
                 with tab_rb_b:
@@ -1125,10 +1135,10 @@ if "Upload Data" in menu:
             elif tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed"):
                 st.markdown("""
                 <div class="pro-card" style="margin-top:20px;">
-                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD_Real</span></div>
+                    <div class="pro-card-header"><span class="pro-card-title"> Preview Data — Hasil Generate dari SD_Real</span></div>
                 </div>
                 """, unsafe_allow_html=True)
-                tab_mu, tab_rb, tab_lap = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja", "📄 Lap RealBelanja"])
+                tab_mu, tab_rb, tab_lap = st.tabs([" Table Master_Unit", " Table Real_Belanja", " Lap RealBelanja"])
                 with tab_mu:
                     st.dataframe(st.session_state["df_master_unit"], use_container_width=True, hide_index=True)
                 with tab_rb:
@@ -1165,7 +1175,7 @@ if "Upload Data" in menu:
         st.markdown("""
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-top:16px;">
             <div style="padding:14px 20px;border-bottom:0.5px solid #f1f5f9;display:flex;align-items:center;justify-content:space-between;">
-                <span style="font-size:14px;font-weight:600;color:#0d1b2e;">🕒 Upload Terbaru</span>
+                <span style="font-size:14px;font-weight:600;color:#0d1b2e;"> Upload Terbaru</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1194,7 +1204,7 @@ if "Upload Data" in menu:
 
         # ── TOMBOL "Lihat semua history" yang bisa diklik ──
         st.markdown('<div style="margin-top:10px;"></div>', unsafe_allow_html=True)
-        if st.button(f"📁 Lihat semua di menu History {tipe_upload} →", key="btn_goto_history", use_container_width=False):
+        if st.button(f" Lihat semua di menu History {tipe_upload} →", key="btn_goto_history", use_container_width=False):
             st.session_state["navigate_to"] = menu_history
             st.rerun()
 
@@ -1274,8 +1284,8 @@ elif "Dashboard (Non-BLUD)" in menu:
     # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
         st.markdown("---")
-        st.subheader("📋 Data Hasil Generate dari SD_Real")
-        tab_mu, tab_rb, tab_lap = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja", "📄 Lap RealBelanja"])
+        st.subheader(" Data Hasil Generate dari SD_Real")
+        tab_mu, tab_rb, tab_lap = st.tabs([" Table Master_Unit", " Table Real_Belanja", " Lap RealBelanja"])
 
         with tab_mu:
             st.markdown("**Tabel Master Unit (Data SKPD)**")
@@ -1348,9 +1358,9 @@ elif "Dashboard (Non-BLUD)" in menu:
             df_csv[col] = df_csv[col].apply(lambda x: f"{float(x):.2f}%" if str(x).strip() not in ("","nan") else "")
 
     csv_data = df_csv.to_csv(index=False, sep=";").encode("utf-8-sig")
-    st.download_button("⬇️ Download CSV", csv_data, "realisasi_non_blud.csv", "text/csv")
+    st.download_button("⬇ Download CSV", csv_data, "realisasi_non_blud.csv", "text/csv")
     pdf_bytes = generate_pdf_report(df_sorted, tanggal_non, total_ang, total_real, total_persen, st.session_state["tahun_non_blud"], "non_blud")
-    st.download_button("📄 Download PDF", pdf_bytes, "realisasi_non_blud.pdf", "application/pdf")
+    st.download_button(" Download PDF", pdf_bytes, "realisasi_non_blud.pdf", "application/pdf")
 
 # ───────────────────────────────────────────────
 #           DASHBOARD BLUD
@@ -1385,7 +1395,7 @@ elif "Dashboard (BLUD)" in menu:
     st.caption(f"**Data BLUD per tanggal: {tanggal_blud}** | Tahun Anggaran: **{st.session_state['tahun_blud']}**")
 
     # ── Tab navigasi: Master_Unit | Real_Belanja_BLUD | Dashboard ──
-    dash_tab1, dash_tab2, dash_tab3 = st.tabs(["📋 Table Master_Unit", "📊 Table Real_Belanja_BLUD", "📈 Dashboard BLUD"])
+    dash_tab1, dash_tab2, dash_tab3 = st.tabs([" Table Master_Unit", " Table Real_Belanja_BLUD", " Dashboard BLUD"])
 
     with dash_tab1:
         df_mu = st.session_state.get("df_master_unit_blud")
@@ -1422,7 +1432,7 @@ elif "Dashboard (BLUD)" in menu:
             st.dataframe(df_rb_view.style.format(fmt_rb), use_container_width=True, hide_index=True)
             # Download Real_Belanja_BLUD
             csv_rb = df_rb.to_csv(index=False).encode("utf-8-sig")
-            st.download_button("⬇️ Download CSV Real_Belanja_BLUD", csv_rb, "real_belanja_blud.csv", "text/csv", key="dl_rb_blud")
+            st.download_button(" Download CSV Real_Belanja_BLUD", csv_rb, "real_belanja_blud.csv", "text/csv", key="dl_rb_blud")
         else:
             st.info("Upload data BLUD terlebih dahulu untuk melihat Table Real_Belanja_BLUD.")
 
@@ -1467,9 +1477,9 @@ elif "Dashboard (BLUD)" in menu:
 
         st.subheader("Export Data")
         csv_data  = df_sorted.to_csv(index=False).encode("utf-8-sig")
-        st.download_button("⬇️ Download CSV", csv_data, "realisasi_blud.csv", "text/csv")
+        st.download_button(" Download CSV", csv_data, "realisasi_blud.csv", "text/csv")
         pdf_bytes = generate_pdf_report(df_sorted, tanggal_blud, total_ang, total_real, total_persen, st.session_state["tahun_blud"], "blud")
-        st.download_button("📄 Download PDF", pdf_bytes, "realisasi_blud.pdf", "application/pdf")
+        st.download_button(" Download PDF", pdf_bytes, "realisasi_blud.pdf", "application/pdf")
 
 # ───────────────────────────────────────────────
 #           DASHBOARD GABUNGAN
@@ -1554,9 +1564,9 @@ elif "Dashboard Gabungan" in menu:
 
     st.subheader("Export Gabungan")
     csv_all = df_all.to_csv(index=False).encode("utf-8-sig")
-    st.download_button("⬇️ Download CSV Gabungan", csv_all, "realisasi_gabungan.csv", "text/csv")
+    st.download_button(" Download CSV Gabungan", csv_all, "realisasi_gabungan.csv", "text/csv")
     pdf_bytes_gab = generate_pdf_report(df_all.sort_values(by="REALISASI",ascending=False), tgl, ang_all, real_all, pct_all, int(st.session_state.get("tahun_anggaran",2026)), "gabungan")
-    st.download_button("📄 Download PDF Gabungan", pdf_bytes_gab, "realisasi_gabungan.pdf", "application/pdf")
+    st.download_button(" Download PDF Gabungan", pdf_bytes_gab, "realisasi_gabungan.pdf", "application/pdf")
 
     with tab_non:
         st.subheader("Tabel Non-BLUD")
@@ -1605,7 +1615,7 @@ elif "History (Non-BLUD)" in menu:
     if not files:
         st.info("Belum ada history upload Non-BLUD."); st.stop()
 
-    st.subheader("🔍 Detail & Export File History")
+    st.subheader(" Detail & Export File History")
     selected      = st.selectbox("Pilih file history:", [f.name for f in files], key="hist_non_select_final")
     selected_path = next(f for f in files if f.name == selected)
     info          = get_file_info(selected_path)
@@ -1639,7 +1649,7 @@ elif "History (Non-BLUD)" in menu:
     col_csv, col_pdf = st.columns(2)
     with col_csv:
         csv_hist = df_hist.to_csv(index=False).encode("utf-8-sig")
-        st.download_button("⬇️ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
+        st.download_button("⬇ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
     with col_pdf:
         dfh = normalize_headers(df_hist.copy())
         dfh = normalize_numeric(dfh, ["ANGGARAN","REALISASI","PROSENTASE"])
@@ -1663,7 +1673,7 @@ elif "History (Non-BLUD)" in menu:
 # ───────────────────────────────────────────────
 
 elif "History (BLUD)" in menu:
-    st.title("📁 History Upload — BLUD")
+    st.title(" History Upload — BLUD")
     files = load_history_list("BLUD")
     if not files:
         st.info("Belum ada history upload BLUD."); st.stop()
@@ -1697,11 +1707,11 @@ elif "History (BLUD)" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    st.subheader("📤 Export & Aksi")
+    st.subheader(" Export & Aksi")
     col_csv, col_pdf = st.columns(2)
     with col_csv:
         csv_hist = df_hist.to_csv(index=False).encode("utf-8-sig")
-        st.download_button("⬇️ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
+        st.download_button("⬇ Download CSV", csv_hist, f"history_{selected}", "text/csv", use_container_width=True)
     with col_pdf:
         dfh = normalize_headers(df_hist.copy())
         dfh = normalize_numeric(dfh, ["ANGGARAN","REALISASI","SISA KREDIT","PROSENTASE"])
@@ -1712,9 +1722,9 @@ elif "History (BLUD)" in menu:
         ta_pdf = info["tahun_anggaran"]
         if not str(ta_pdf).isdigit(): ta_pdf = int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist = generate_pdf_report(dfh, info["tanggal_data"], total_ang_h, total_real_h, total_pct_h, int(ta_pdf), "blud")
-        st.download_button("📄 Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
+        st.download_button(" Download PDF", pdf_hist, f"history_{selected.replace('.csv','.pdf')}", "application/pdf", use_container_width=True)
 
-    if st.button("🗑️ Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
+    if st.button(" Hapus File Ini", type="primary", use_container_width=True, key="del_blud_final"):
         os.remove(selected_path)
         st.session_state["hist_blud_page"] = 1
         st.success(f"File `{selected}` berhasil dihapus.")
