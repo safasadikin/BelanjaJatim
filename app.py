@@ -527,6 +527,14 @@ def save_to_history(df, tipe, tanggal_impor, tahun):
     filename      = f"{tipe.lower()}_{tanggal_clean}_TA{tahun}_{timestamp}.csv"
     filepath      = os.path.join(dir_path, filename)
 
+    # Hapus file lama dengan tanggal + tahun yang sama agar tidak bertambah terus
+    tipe_prefix = tipe.lower()
+    for old_file in Path(dir_path).glob(f"{tipe_prefix}_{tanggal_clean}_TA{tahun}_*.csv"):
+        try:
+            old_file.unlink()
+        except Exception:
+            pass
+
     # Tulis baris metadata waktu upload di baris ke-1 CSV (sebelum header data)
     # Format: #UPLOAD_TIME=DD/MM/YYYY HH:MM:SS
     waktu_str = waktu_upload_aktual.strftime("%d/%m/%Y %H:%M:%S")
@@ -536,7 +544,7 @@ def save_to_history(df, tipe, tanggal_impor, tahun):
 
 def load_history_list(tipe):
     dir_path = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
-    return sorted(Path(dir_path).glob("*.csv"), reverse=True)
+    return sorted(Path(dir_path).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
 
 def load_history_file(filepath):
     # Baca CSV, skip baris metadata #UPLOAD_TIME jika ada
@@ -814,20 +822,26 @@ if "Upload Data" in menu:
     # ── INFO BANNER ──
     history_dir   = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
     # Selalu baca ulang dari filesystem agar real-time setelah upload
-    history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
+    history_files = sorted(Path(history_dir).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
     jumlah_file   = len(history_files)
 
+    _HARI_ID = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
     from datetime import date as _date
     if history_files:
-        # Ambil info file terbaru
+        # Ambil info file terbaru (sudah sort by mtime, index 0 = paling baru)
         newest_info   = get_file_info(history_files[0])
         last_upload   = newest_info.get("upload_time", "–")   # DD/MM/YYYY HH:MM:SS
         last_modified_date = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
         selisih    = (_date.today() - last_modified_date).days
         last_label = "Hari ini" if selisih == 0 else (f"{selisih} hari lalu" if selisih > 0 else "Baru saja")
         last_class = "warn" if selisih > 7 else ""
-        # Format singkat untuk stat card (tanggal + jam)
-        last_short = last_upload  # sudah format DD/MM/YYYY HH:MM:SS
+        # Tambahkan nama hari ke stat card
+        try:
+            _dt_last  = datetime.strptime(last_upload, "%d/%m/%Y %H:%M:%S")
+            _hari_last = _HARI_ID[_dt_last.weekday()]
+            last_short = f"{_hari_last}, {last_upload}"
+        except Exception:
+            last_short = last_upload
     else:
         last_upload = "Belum ada"; last_label = "–"; last_class = "warn"; last_short = "Belum ada"
 
@@ -1181,7 +1195,7 @@ if "Upload Data" in menu:
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
             # Catat waktu upload terakhir ke session_state agar stat cards update
             st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
-            st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
+            st.session_state[f"last_upload_count_{tipe_upload}"] = len(list(Path(history_dir).glob("*.csv")))
             st.session_state["upload_just_done"] = True
 
             st.success(f"✅ Data berhasil diimport & disimpan ke history!  {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
@@ -1248,7 +1262,7 @@ if "Upload Data" in menu:
 
     # ── HISTORY TERBARU ──
     # Refresh history_files setelah upload
-    history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
+    history_files = sorted(Path(history_dir).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
 
     if history_files:
         st.markdown("""
