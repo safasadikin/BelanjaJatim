@@ -799,6 +799,18 @@ if "Upload Data" in menu:
     <div class="page-subtitle-pro">Import file Excel untuk memperbarui data realisasi {tipe_upload} Jawa Timur</div>
     """, unsafe_allow_html=True)
 
+    # ── Tampilkan notifikasi sukses setelah rerun ──
+    if st.session_state.pop("upload_just_done", False):
+        waktu_sukses = st.session_state.get(f"last_upload_time_{tipe_upload}", "")
+        HARI_ID_NOTIF = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+        try:
+            _dt = datetime.strptime(waktu_sukses, "%d/%m/%Y %H:%M:%S")
+            _hari = HARI_ID_NOTIF[_dt.weekday()]
+            waktu_sukses = f"{_hari}, {waktu_sukses}"
+        except Exception:
+            pass
+        st.success(f"✅ Upload berhasil disimpan! Diupload pada: **{waktu_sukses}**")
+
     # ── INFO BANNER ──
     history_dir   = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
     # Selalu baca ulang dari filesystem agar real-time setelah upload
@@ -1170,8 +1182,10 @@ if "Upload Data" in menu:
             # Catat waktu upload terakhir ke session_state agar stat cards update
             st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
             st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
+            st.session_state["upload_just_done"] = True
 
             st.success(f"✅ Data berhasil diimport & disimpan ke history!  {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
+            st.rerun()
 
             # ── Preview: jika BLUD → tampilkan semua tabel generate ──
             if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed"):
