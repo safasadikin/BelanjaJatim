@@ -256,7 +256,7 @@ def show_auth_page():
 
         # ── Ingat Saya: simpan token, bukan password ──
         remember_me = st.checkbox(
-            "🔐 Ingat saya di perangkat ini (auto-login 30 hari)",
+            " Ingat saya",
             value=False,
             help="Login otomatis tanpa perlu memasukkan password lagi selama 30 hari."
         )
