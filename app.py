@@ -151,44 +151,33 @@ def show_auth_page():
             .block-container {{ background: transparent !important; padding-top: 10rem !important; margin-top: 0 !important; }}
             .stTextInput input {{ background: rgba(255,255,255,0.92) !important; font-weight: 600 !important; color: #111 !important; border: 1.5px solid #ccc !important; }}
             .stTabs [data-baseweb="tab"] {{ font-weight: 700 !important; }}
-            [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
-            #MainMenu {{ display: none !important; visibility: hidden !important; }}
-            footer {{ display: none !important; visibility: hidden !important; }}
-            div[data-testid="stToolbarActions"] {{ display:none !important; visibility:hidden !important; }}
-            .stDeployButton {{ display:none !important; visibility:hidden !important; }}
-            [data-testid="stDeployButton"] {{ display:none !important; visibility:hidden !important; }}
-            div[style*="position: fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
-            div[style*="position:fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
-            [data-testid="stActionButtonIcon"] {{ display: none !important; visibility: hidden !important; }}
-            .stActionButton {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="baseButton-actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            button[kind="actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="ActionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="viewerBadge"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="StatusWidget"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="toolbarActions"] {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="stToolbarActions"] {{ display: none !important; visibility: hidden !important; }}
-            div[class*="toolbar"] button {{ display: none !important; visibility: hidden !important; }}
+            [data-testid="stToolbar"] {{ display: none !important; }}
+            [data-testid="stDecoration"] {{ display: none !important; }}
+            [data-testid="stStatusWidget"] {{ display: none !important; }}
+            [data-testid="stToolbarActions"] {{ display: none !important; }}
+            #MainMenu {{ display: none !important; }}
+            footer {{ display: none !important; }}
             header[data-testid="stHeader"] {{ background: transparent !important; border: none !important; box-shadow: none !important; }}
             [data-testid="stHeader"] > * {{ display: none !important; }}
-            button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
-            button[data-testid="StyledFullScreenButton"] {{ display: none !important; visibility: hidden !important; }}
+            button[title="View fullscreen"] {{ display: none !important; }}
+            button[data-testid="StyledFullScreenButton"] {{ display: none !important; }}
+            [class*="_profileContainer"] {{ display: none !important; }}
+            [class*="_profilePreview"] {{ display: none !important; }}
+            [class*="viewerBadge"] {{ display: none !important; }}
+            [class*="StatusWidget"] {{ display: none !important; }}
+            [class*="toolbarActions"] {{ display: none !important; }}
+            div[style*="position: fixed"][style*="bottom"][style*="right"] {{ display: none !important; }}
+            div[style*="position:fixed"][style*="bottom"][style*="right"] {{ display: none !important; }}
             </style>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
         pass
 
     try:
-        import base64 as _b64
-        with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
-            _logo_b64 = _b64.b64encode(_f.read()).decode()
-        st.markdown(f"""
-            <div style="display:flex;justify-content:center;margin-bottom:-30px;">
-                <img src="data:image/png;base64,{_logo_b64}" style="width:400px;pointer-events:none;" />
-            </div>
-        """, unsafe_allow_html=True)
+        logo = Image.open("Logo Provinsi Jawa Timur.png")
+        col1, col2, col3 = st.columns([1, 2, 1])
+        with col2:
+            st.image(logo, use_container_width=True)
     except FileNotFoundError:
         st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
@@ -200,10 +189,9 @@ def show_auth_page():
             st.success(st.session_state.pop("logout_message"))
         st.markdown("**Masuk ke aplikasi**")
         remembered_username = cookies.get("remember_username", "")
-        remembered_password = cookies.get("remember_password", "")
         username = st.text_input("Username", value=remembered_username, key="login_username_unique")
-        password = st.text_input("Password", type="password", value=remembered_password, key="login_password_unique")
-        remember_me = st.checkbox("Ingat saya", value=bool(remembered_username and remembered_password))
+        password = st.text_input("Password", type="password", key="login_password_unique")
+        remember_me = st.checkbox("Ingat saya di perangkat ini", value=bool(remembered_username))
 
         if st.button("Masuk", type="primary", use_container_width=True):
             users = load_users()
@@ -212,13 +200,10 @@ def show_auth_page():
                 if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
-                    st.session_state["nama_lengkap"] = users[username].get("nama_lengkap", username)
                     if remember_me:
                         cookies["remember_username"] = username
-                        cookies["remember_password"] = password
                     else:
                         cookies.pop("remember_username", None)
-                        cookies.pop("remember_password", None)
                     cookies.save()
                     nama = users[username].get("nama_lengkap", username)
                     import time
@@ -308,12 +293,11 @@ def show_auth_page():
         st.markdown("**Lupa Password? Reset di sini**")
         if st.session_state.get("reset_success"): st.success(st.session_state.pop("reset_success"))
         if st.session_state.get("reset_error"):   st.error(st.session_state.pop("reset_error"))
-        _reset_form_key = st.session_state.get("reset_form_counter", 0)
-        with st.form(key=f"reset_form_{_reset_form_key}"):
-            reset_username         = st.text_input("Username yang ingin direset", key=f"reset_username_unique_{_reset_form_key}")
-            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key=f"reset_hp_unique_{_reset_form_key}")
-            new_password_reset     = st.text_input("Password Baru", type="password", key=f"reset_pw_unique_{_reset_form_key}")
-            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key=f"reset_confirm_unique_{_reset_form_key}")
+        with st.form(key="reset_form"):
+            reset_username         = st.text_input("Username yang ingin direset", key="reset_username_unique")
+            reset_no_hp            = st.text_input("Nomor HP terdaftar (untuk verifikasi)", key="reset_hp_unique")
+            new_password_reset     = st.text_input("Password Baru", type="password", key="reset_pw_unique")
+            confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key="reset_confirm_unique")
             reset_button           = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
         if reset_button:
             error_msg = ""
@@ -334,7 +318,6 @@ def show_auth_page():
                     hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     users[reset_username]["password"] = hashed
                     save_user(reset_username, users[reset_username])
-                    st.session_state["reset_form_counter"] = _reset_form_key + 1
                     st.session_state["reset_success"] = f"**Password berhasil direset!** Silakan login 🎉"; st.rerun()
     st.markdown("---")
 
@@ -355,28 +338,23 @@ if not st.session_state["logged_in"]:
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 
-# ── Sembunyikan tombol pojok kanan bawah Streamlit ──
 st.markdown("""
 <style>
-/* Sembunyikan semua fixed element di bottom-right (tombol Streamlit) */
-iframe[title="streamlit_analytics2.components.streamlit_analytics2"] { display:none !important; }
-div[data-testid="stToolbarActions"] { display:none !important; visibility:hidden !important; }
-div[class*="stToolbarActions"] { display:none !important; visibility:hidden !important; }
-section[data-testid="stToolbar"] { display:none !important; visibility:hidden !important; }
-.stDeployButton { display:none !important; visibility:hidden !important; }
-[data-testid="stDeployButton"] { display:none !important; visibility:hidden !important; }
-
-/* Nuclear: sembunyikan semua element fixed di pojok kanan bawah */
-div[style*="position: fixed"][style*="bottom"][style*="right"],
-div[style*="position:fixed"][style*="bottom"][style*="right"] {
-    display: none !important;
-    visibility: hidden !important;
-}
-</style>
-""", unsafe_allow_html=True)
-
-st.markdown("""
-<style>
+[data-testid="stToolbar"] { display: none !important; }
+[data-testid="stDecoration"] { display: none !important; }
+[data-testid="stStatusWidget"] { display: none !important; }
+[data-testid="stToolbarActions"] { display: none !important; }
+#MainMenu { display: none !important; }
+footer { display: none !important; }
+button[title="View fullscreen"] { display: none !important; }
+button[data-testid="StyledFullScreenButton"] { display: none !important; }
+[class*="_profileContainer"] { display: none !important; }
+[class*="_profilePreview"] { display: none !important; }
+[class*="viewerBadge"] { display: none !important; }
+[class*="StatusWidget"] { display: none !important; }
+[class*="toolbarActions"] { display: none !important; }
+div[style*="position: fixed"][style*="bottom"][style*="right"] { display: none !important; }
+div[style*="position:fixed"][style*="bottom"][style*="right"] { display: none !important; }
 [data-testid="stAppViewContainer"] > .main { background: #f0f4f9; }
 [data-testid="stAppViewContainer"] > .main .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
 [data-testid="stSidebar"] { background: #0d1b2e !important; border-right: none !important; }
@@ -460,40 +438,14 @@ st.markdown("""
     transition: all 0.15s;
 }
 .btn-history-link:hover { background: #dbeafe; }
-[data-testid="stToolbar"] { display: none !important; visibility: hidden !important; }
-[data-testid="stDecoration"] { display: none !important; visibility: hidden !important; }
-#MainMenu { display: none !important; visibility: hidden !important; }
-footer { display: none !important; visibility: hidden !important; }
-[data-testid="stActionButtonIcon"] { display: none !important; visibility: hidden !important; }
-.stActionButton { display: none !important; visibility: hidden !important; }
-[data-testid="baseButton-actionButton"] { display: none !important; visibility: hidden !important; }
-#stDecoration { display: none !important; visibility: hidden !important; }
-.viewerBadge_container__r5tak { display: none !important; visibility: hidden !important; }
-.styles_viewerBadge__CvC9N { display: none !important; visibility: hidden !important; }
-button[kind="actionButton"] { display: none !important; visibility: hidden !important; }
-[class*="ActionButton"] { display: none !important; visibility: hidden !important; }
-[class*="actionButton"] { display: none !important; visibility: hidden !important; }
-[class*="viewerBadge"] { display: none !important; visibility: hidden !important; }
-[class*="StatusWidget"] { display: none !important; visibility: hidden !important; }
-[class*="toolbarActions"] { display: none !important; visibility: hidden !important; }
-[data-testid="stToolbarActions"] { display: none !important; visibility: hidden !important; }
-div[class*="toolbar"] button { display: none !important; visibility: hidden !important; }
-.stApp > div:last-child > div:last-child { display: none !important; }
-button[title="View fullscreen"] { display: none !important; visibility: hidden !important; }
-button[data-testid="StyledFullScreenButton"] { display: none !important; visibility: hidden !important; }
 </style>
 """, unsafe_allow_html=True)
 
 # ── SIDEBAR ──
 import base64
 
-current_user  = st.session_state.get('current_user', 'User')
-# Ambil nama_lengkap dari session_state (disimpan saat login berhasil)
-display_name  = st.session_state.get('nama_lengkap', current_user) or current_user
-user_initial  = display_name[0].upper() if display_name else 'U'
-
-# ── Daftar username yang boleh akses Developer Tools ──
-ADMIN_USERS = ["admin"]  # tambahkan username admin lain di sini
+current_user = st.session_state.get('current_user', 'User')
+user_initial = current_user[0].upper() if current_user else 'U'
 
 logo_html = ""
 try:
@@ -584,14 +536,6 @@ def save_to_history(df, tipe, tanggal_impor, tahun):
     filename      = f"{tipe.lower()}_{tanggal_clean}_TA{tahun}_{timestamp}.csv"
     filepath      = os.path.join(dir_path, filename)
 
-    # Hapus file lama dengan tanggal + tahun yang sama agar tidak bertambah terus
-    tipe_prefix = tipe.lower()
-    for old_file in Path(dir_path).glob(f"{tipe_prefix}_{tanggal_clean}_TA{tahun}_*.csv"):
-        try:
-            old_file.unlink()
-        except Exception:
-            pass
-
     # Tulis baris metadata waktu upload di baris ke-1 CSV (sebelum header data)
     # Format: #UPLOAD_TIME=DD/MM/YYYY HH:MM:SS
     waktu_str = waktu_upload_aktual.strftime("%d/%m/%Y %H:%M:%S")
@@ -601,7 +545,7 @@ def save_to_history(df, tipe, tanggal_impor, tahun):
 
 def load_history_list(tipe):
     dir_path = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
-    return sorted(Path(dir_path).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
+    return sorted(Path(dir_path).glob("*.csv"), reverse=True)
 
 def load_history_file(filepath):
     # Baca CSV, skip baris metadata #UPLOAD_TIME jika ada
@@ -666,88 +610,36 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
     buffer      = io.BytesIO()
     is_blud     = (str(tipe).lower() == "blud")
     is_gabungan = (str(tipe).lower() == "gabungan")
-    # Semua tipe pakai landscape agar lebih lega
-    page_size   = landscape(A4)
-    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=25, leftMargin=25, topMargin=30, bottomMargin=30)
+    page_size   = landscape(A4) if is_blud or is_gabungan else A4
+    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
     elements = []; styles = getSampleStyleSheet()
-
-    # Style untuk wrap text
-    wrap_style = styles["Normal"].clone("wrap_style")
-    wrap_style.fontSize = 7
-    wrap_style.leading  = 9
-
-    header_style = styles["Normal"].clone("header_style")
-    header_style.fontSize   = 7
-    header_style.leading    = 9
-    header_style.textColor  = colors.white
-    header_style.fontName   = "Helvetica-Bold"
-    header_style.alignment  = 1  # center
-
     tipe_label = "GABUNGAN (NON-BLUD + BLUD)" if is_gabungan else ("BLUD" if is_blud else "NON-BLUD")
     elements.append(Paragraph(f"LAPORAN REALISASI BELANJA JAWA TIMUR TA {tahun_anggaran} ({tipe_label})", styles["Heading1"]))
     elements.append(Paragraph(f"Data per tanggal: {tanggal_impor}", styles["Normal"]))
     elements.append(Paragraph(f"Dicetak pada: {now_wib().strftime('%d/%m/%Y %H:%M:%S')}", styles["Normal"]))
     elements.append(Spacer(1, 12))
-
     summary_data  = [["Keterangan","Nilai"],["Total Anggaran",f"Rp {total_ang:,.0f}".replace(",",".")],["Total Realisasi",f"Rp {total_real:,.0f}".replace(",",".")],["% Realisasi",f"{total_persen:.2f}%"]]
     summary_table = Table(summary_data, colWidths=[2.5*inch, 3*inch])
-    summary_table.setStyle(TableStyle([
-        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
-        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
-        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
-        ("ALIGN",(0,0),(-1,-1),"CENTER"),
-        ("GRID",(0,0),(-1,-1),0.5,colors.grey),
-        ("FONTSIZE",(0,0),(-1,-1),9),
-        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])
-    ]))
+    summary_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("ALIGN",(0,0),(-1,-1),"CENTER"),("GRID",(0,0),(-1,-1),0.5,colors.grey),("FONTSIZE",(0,0),(-1,-1),9),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])]))
     elements.append(summary_table); elements.append(Spacer(1,16))
-
-    # Lebar halaman landscape A4 = 841.89pt - margin kiri kanan 50pt = ~791pt
     if is_gabungan or is_blud:
         headers    = ["No","Tipe","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.35*inch, 0.7*inch, 1.2*inch, 3.2*inch, 1.6*inch, 1.6*inch, 0.7*inch]
+        col_widths = [0.4*inch,0.8*inch,1.0*inch,2.6*inch,1.4*inch,1.4*inch,0.7*inch]
     else:
-        headers    = ["No","No\nAsal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.3*inch, 0.4*inch, 1.3*inch, 3.0*inch, 1.65*inch, 1.65*inch, 0.65*inch]
-
-    # Buat header row dengan Paragraph agar bisa wrap
-    header_row = [Paragraph(h, header_style) for h in headers]
-    table_data = [header_row]
-
+        headers    = ["No","No Asal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
+        col_widths = [0.35*inch,0.4*inch,1.0*inch,2.3*inch,1.4*inch,1.4*inch,0.7*inch]
+    table_data = [headers]
     df_reset = df.reset_index(drop=True)
     for urut, (_, row) in enumerate(df_reset.iterrows(), start=1):
-        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")
+        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")[:40]
         no_asal   = str(int(row["No"])) if "No" in row and str(row["No"]).replace(".0","").isdigit() else str(urut)
-        anggaran  = f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",",".")
-        realisasi = f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",",".")
-        persen    = f"{float(row.get('PROSENTASE',0) or 0):.2f}%"
-
-        # Nama SKPD pakai Paragraph agar bisa word wrap
-        nama_para = Paragraph(skpd_name, wrap_style)
-
         if is_gabungan or is_blud:
-            row_list = [str(urut), str(row.get("TIPE","")), str(row.get("KODE SKPD","")), nama_para, anggaran, realisasi, persen]
+            row_list = [str(urut),str(row.get("TIPE","")),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
         else:
-            row_list = [str(urut), no_asal, str(row.get("KODE SKPD","")), nama_para, anggaran, realisasi, persen]
+            row_list = [str(urut),no_asal,str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
         table_data.append(row_list)
-
     detail_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    detail_table.setStyle(TableStyle([
-        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
-        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
-        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
-        ("FONTSIZE",(0,0),(-1,-1),7),
-        ("ALIGN",(0,0),(-1,-1),"CENTER"),
-        ("ALIGN",(3,1),(3,-1),"LEFT"),
-        ("ALIGN",(4,1),(5,-1),"RIGHT"),
-        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
-        ("GRID",(0,0),(-1,-1),0.4,colors.grey),
-        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),
-        ("TOPPADDING",(0,0),(-1,-1),4),
-        ("BOTTOMPADDING",(0,0),(-1,-1),4),
-        ("LEFTPADDING",(0,0),(-1,-1),4),
-        ("RIGHTPADDING",(0,0),(-1,-1),4),
-    ]))
+    detail_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),7),("ALIGN",(0,0),(-1,-1),"CENTER"),("ALIGN",(3,1),(3,-1),"LEFT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("GRID",(0,0),(-1,-1),0.4,colors.grey),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3)]))
     elements.append(detail_table)
     doc.build(elements); buffer.seek(0)
     return buffer.getvalue()
@@ -805,19 +697,17 @@ st.session_state["_menu_idx"] = menu_options.index(menu)
 
 # ── USER & LOGOUT ──
 st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
-_admin_badge = '<div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>' if current_user in ADMIN_USERS else ""
-_profile_html = (
-    '<div style="padding:10px 16px 8px;border-top:0.5px solid rgba(255,255,255,0.07);margin-top:12px;">'
-    '<div style="display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;">'
-    '<div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;">' + user_initial + '</div>'
-    '<div style="flex:1;min-width:0;">'
-    '<div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + display_name + '</div>'
-    + _admin_badge +
-    '</div>'
-    '</div>'
-    '</div>'
-)
-st.sidebar.markdown(_profile_html, unsafe_allow_html=True)
+st.sidebar.markdown(f"""
+<div style="padding:10px 16px 8px;border-top:0.5px solid rgba(255,255,255,0.07);margin-top:12px;">
+    <div style="display:flex;align-items:center;gap:9px;padding:8px 8px;border-radius:8px;">
+        <div style="width:30px;height:30px;border-radius:50%;background:linear-gradient(135deg,#1d4ed8,#7c3aed);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;color:white;flex-shrink:0;">{user_initial}</div>
+        <div style="flex:1;min-width:0;">
+            <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,0.88);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{current_user}</div>
+            <div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>
+        </div>
+    </div>
+</div>
+""", unsafe_allow_html=True)
 
 if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
     st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
@@ -828,12 +718,10 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
     st.query_params.clear()
     st.rerun()
 
-if current_user in ADMIN_USERS:
-    with st.sidebar.expander("⚙ Developer Tools", expanded=False):
-        st.caption("Hanya tersedia untuk akun admin.")
-        if st.button("🔄 Clear Cache & Rerun", use_container_width=True, key="dev_clear_cache"):
-            st.cache_data.clear()
-            st.rerun()
+with st.sidebar.expander("⚙ Developer Tools", expanded=False):
+    if st.button("Clear Cache & Rerun", use_container_width=True):
+        st.cache_data.clear()
+        st.rerun()
 
 # ───────────────────────────────────────────────
 #           UPLOAD DATA
@@ -868,39 +756,26 @@ if "Upload Data" in menu:
     <div class="page-subtitle-pro">Import file Excel untuk memperbarui data realisasi {tipe_upload} Jawa Timur</div>
     """, unsafe_allow_html=True)
 
-    # ── Tampilkan notifikasi sukses setelah rerun ──
-    if st.session_state.pop("upload_just_done", False):
-        waktu_sukses = st.session_state.get(f"last_upload_time_{tipe_upload}", "")
-        HARI_ID_NOTIF = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
-        try:
-            _dt = datetime.strptime(waktu_sukses, "%d/%m/%Y %H:%M:%S")
-            _hari = HARI_ID_NOTIF[_dt.weekday()]
-            waktu_sukses = f"{_hari}, {waktu_sukses}"
-        except Exception:
-            pass
-        st.success(f"✅ Upload berhasil disimpan! Diupload pada: **{waktu_sukses}**")
-
     # ── INFO BANNER ──
     history_dir   = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
     # Selalu baca ulang dari filesystem agar real-time setelah upload
     history_files = sorted(Path(history_dir).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
     jumlah_file   = len(history_files)
 
-    _HARI_ID = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
     from datetime import date as _date
     if history_files:
-        # Ambil info file terbaru (sudah sort by mtime, index 0 = paling baru)
+        # Ambil info file terbaru
         newest_info   = get_file_info(history_files[0])
-        last_upload   = newest_info.get("upload_time", "–")   # DD/MM/YYYY HH:MM:SS
+        last_upload   = newest_info.get("upload_time", "–")
         last_modified_date = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
         selisih    = (_date.today() - last_modified_date).days
         last_label = "Hari ini" if selisih == 0 else (f"{selisih} hari lalu" if selisih > 0 else "Baru saja")
         last_class = "warn" if selisih > 7 else ""
-        # Tambahkan nama hari ke stat card
         try:
-            _dt_last  = datetime.strptime(last_upload, "%d/%m/%Y %H:%M:%S")
-            _hari_last = _HARI_ID[_dt_last.weekday()]
-            last_short = f"{_hari_last}, {last_upload}"
+            from datetime import datetime as _dt
+            _HARI = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+            _parsed = _dt.strptime(last_upload, "%d/%m/%Y %H:%M:%S")
+            last_short = f"{_HARI[_parsed.weekday()]}, {last_upload}"
         except Exception:
             last_short = last_upload
     else:
@@ -1256,11 +1131,9 @@ if "Upload Data" in menu:
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
             # Catat waktu upload terakhir ke session_state agar stat cards update
             st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
-            st.session_state[f"last_upload_count_{tipe_upload}"] = len(list(Path(history_dir).glob("*.csv")))
-            st.session_state["upload_just_done"] = True
+            st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
 
             st.success(f"✅ Data berhasil diimport & disimpan ke history!  {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
-            st.rerun()
 
             # ── Preview: jika BLUD → tampilkan semua tabel generate ──
             if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed"):
@@ -1323,7 +1196,7 @@ if "Upload Data" in menu:
 
     # ── HISTORY TERBARU ──
     # Refresh history_files setelah upload
-    history_files = sorted(Path(history_dir).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
+    history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
 
     if history_files:
         st.markdown("""
@@ -1334,8 +1207,6 @@ if "Upload Data" in menu:
         </div>
         """, unsafe_allow_html=True)
 
-        HARI_ID = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
-
         for hf in history_files[:5]:
             info      = get_file_info(hf)
             fname     = hf.name
@@ -1343,15 +1214,6 @@ if "Upload Data" in menu:
             tgl_str   = info.get("tanggal_data", "–")
             # Tampilkan waktu upload real-time dari timestamp di nama file
             upload_str = info.get("upload_time", info.get("modified_time", "–"))
-
-            # Tambahkan nama hari dalam Bahasa Indonesia
-            try:
-                upload_dt   = datetime.strptime(upload_str, "%d/%m/%Y %H:%M:%S")
-                nama_hari   = HARI_ID[upload_dt.weekday()]
-                upload_full = f"{nama_hari}, {upload_str}"
-            except Exception:
-                upload_full = upload_str
-
             is_last   = (hf == history_files[:5][-1])
             border    = "none" if is_last else "0.5px solid #f1f5f9"
             st.markdown(f"""
@@ -1360,7 +1222,7 @@ if "Upload Data" in menu:
                 <div style="flex:1;min-width:0;">
                     <div style="color:#0d1b2e;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{fname}</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px;">
-                        Data: <b>{tgl_str}</b> &nbsp;·&nbsp; Diupload: <b>{upload_full}</b> &nbsp;·&nbsp; {size_str}
+                        Data: <b>{tgl_str}</b> &nbsp;·&nbsp; Diupload: <b>{upload_str}</b> &nbsp;·&nbsp; {size_str}
                     </div>
                 </div>
                 <div style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#f0fdf4;color:#16a34a;border:0.5px solid #bbf7d0;flex-shrink:0;">Tersimpan</div>
@@ -1440,14 +1302,14 @@ elif "Dashboard (Non-BLUD)" in menu:
     df_pct["PCT"]       = (df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
     df_top = df_pct.sort_values("PCT", ascending=False).head(10)
     if not df_top.empty:
-        # ── Grafik 1: Bar Chart (existing) ──
+        # ── Grafik 1: Bar Chart ──
         fig = px.bar(df_top, x="PCT", y="NAMA_SKPD", orientation="h", title="Top 10 Non-BLUD", height=500, text="PCT", color_discrete_sequence=["#EF553B"])
         fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside', textfont_size=12, cliponaxis=False, hovertemplate="<b>%{y}</b><br>PCT: %{x:.1f}%", customdata=df_top[["ANGGARAN","REALISASI"]].values)
         fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
         fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
         st.plotly_chart(fig, use_container_width=True)
 
-        # ── Grafik 2: Donut Chart + Treemap berdampingan ──
+        # ── Grafik 2: Donut + Heatmap berdampingan ──
         col_g1, col_g2 = st.columns(2)
         with col_g1:
             fig_donut = px.pie(
@@ -1469,7 +1331,6 @@ elif "Dashboard (Non-BLUD)" in menu:
         with col_g2:
             import plotly.graph_objects as go
             df_ranked = df_top.sort_values("PCT", ascending=False).reset_index(drop=True)
-
             fig_heat = go.Figure(go.Heatmap(
                 z=[df_ranked["PCT"].tolist()],
                 x=df_ranked["NAMA_SKPD"].tolist(),
@@ -1486,16 +1347,9 @@ elif "Dashboard (Non-BLUD)" in menu:
             fig_heat.update_layout(
                 title=dict(text="Heatmap % Realisasi — Top 10 Non-BLUD", font=dict(size=14, color="#e0e0e0")),
                 height=480,
-                xaxis=dict(
-                    tickangle=-35,
-                    tickfont=dict(size=9, color="#cccccc"),
-                    side="bottom",
-                ),
-                yaxis=dict(
-                    tickfont=dict(size=11, color="#cccccc"),
-                ),
-                plot_bgcolor="#0e1117",
-                paper_bgcolor="#0e1117",
+                xaxis=dict(tickangle=-35, tickfont=dict(size=9, color="#cccccc"), side="bottom"),
+                yaxis=dict(tickfont=dict(size=11, color="#cccccc")),
+                plot_bgcolor="#0e1117", paper_bgcolor="#0e1117",
                 font=dict(color="#e0e0e0"),
                 margin=dict(l=10, r=60, t=60, b=140),
             )
@@ -1951,5 +1805,8 @@ elif "History (BLUD)" in menu:
         st.rerun()
 
 # ───────────────────────────────────────────────
-#           DEBUG — tombol sudah digabung di atas (sidebar expander)
+#           DEBUG
 # ───────────────────────────────────────────────
+if st.sidebar.button("Clear Cache & Rerun"):
+    st.cache_data.clear()
+    st.rerun()
