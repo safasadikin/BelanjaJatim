@@ -119,12 +119,11 @@ def delete_user(username):
 def show_auth_page():
     st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
 
-    import base64
-       # ── BACKGROUND BARU (Gambar yang sudah dibersihkan) ──
+    # Background Login Final (bersih, tanpa elemen pojok kanan bawah)
     try:
-        with open("background_login.jpg", "rb") as f:   # Ganti nama file sesuai yang kamu simpan
+        with open("thumb-1920-719571.jpg", "rb") as f:
             bg_data = base64.b64encode(f.read()).decode()
-        
+
         st.markdown(f"""
             <style>
             .stApp {{
@@ -134,72 +133,111 @@ def show_auth_page():
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            .block-container {{ 
-                position: relative; 
-                z-index: 1; 
-                background: rgba(0, 0, 0, 0.25) !important;  /* overlay gelap agar teks jelas */
-                border-radius: 16px;
-                padding: 2rem !important;
+
+            /* Card utama dengan overlay */
+            .block-container {{
+                position: relative;
+                z-index: 2;
+                background: rgba(0, 0, 0, 0.42) !important;
+                border-radius: 20px;
+                padding: 40px 35px !important;
                 max-width: 480px !important;
-                margin: 0 auto !important;
+                margin: 90px auto 40px auto !important;
+                box-shadow: 0 15px 35px rgba(0,0,0,0.6);
             }}
-            
-            /* Login Card Styling */
-            .stTabs {{ background: rgba(255,255,255,0.95) !important; border-radius: 12px; padding: 10px; }}
-            h1 {{ color: white !important; text-shadow: 2px 2px 8px rgba(0,0,0,0.8) !important; }}
-            .stMarkdown p, label, span {{ color: white !important; font-weight: 600 !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.7); }}
-            
+
+            h1 {{
+                color: white !important;
+                text-align: center;
+                text-shadow: 3px 3px 12px rgba(0,0,0,0.9) !important;
+                font-weight: 900 !important;
+                margin-bottom: 8px !important;
+            }}
+
+            .stTabs [data-baseweb="tab"] {{
+                font-weight: 700 !important;
+                color: white !important;
+            }}
+
+            p, label, span, .stMarkdown {{
+                color: white !important;
+                text-shadow: 1px 1px 4px rgba(0,0,0,0.75) !important;
+                font-weight: 600 !important;
+            }}
+
+            .stTextInput input {{
+                background: rgba(255,255,255,0.95) !important;
+                color: #111111 !important;
+                border: 2px solid #ccc !important;
+                border-radius: 8px !important;
+                font-weight: 600 !important;
+                height: 46px !important;
+            }}
+
             /* Tombol Masuk */
             .stButton > button {{
                 background: linear-gradient(90deg, #1e40af, #3b82f6) !important;
                 color: white !important;
                 font-weight: 700 !important;
                 border: none !important;
-                border-radius: 8px !important;
-                padding: 12px !important;
-                font-size: 16px !important;
+                border-radius: 10px !important;
+                height: 52px !important;
+                font-size: 17px !important;
+                margin-top: 15px !important;
             }}
             .stButton > button:hover {{
                 background: linear-gradient(90deg, #1e3a8a, #2563eb) !important;
-                transform: translateY(-1px);
+                transform: translateY(-2px);
             }}
-            
-            /* Sembunyikan semua elemen Streamlit default di pojok kanan bawah */
-            [data-testid="stToolbar"], [data-testid="stDecoration"], footer, 
-            .stDeployButton, [data-testid="stDeployButton"],
+
+            /* Sembunyikan semua elemen Streamlit di pojok kanan bawah */
+            [data-testid="stToolbar"],
+            [data-testid="stDecoration"],
+            footer,
+            .stDeployButton,
+            [data-testid="stDeployButton"],
             div[style*="position: fixed"][style*="bottom"][style*="right"],
-            button[title="View fullscreen"], 
-            [data-testid="StyledFullScreenButton"] {{
+            button[title="View fullscreen"],
+            [data-testid="StyledFullScreenButton"],
+            iframe[title*="streamlit_analytics"],
+            .viewerBadge_container,
+            .styles_viewerBadge,
+            [class*="ActionButton"],
+            [data-testid="stActionButtonIcon"] {{
                 display: none !important;
                 visibility: hidden !important;
+                height: 0 !important;
             }}
             </style>
         """, unsafe_allow_html=True)
-        
-    except FileNotFoundError:
-        st.error("❌ File background_login.jpg tidak ditemukan. Pastikan file sudah disimpan di folder yang sama dengan app.py")
 
+    except FileNotFoundError:
+        st.error("❌ File background 'thumb-1920-719571.jpg' tidak ditemukan.")
+
+    # Logo Provinsi Jawa Timur
     try:
-        import base64 as _b64
-        with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
-            _logo_b64 = _b64.b64encode(_f.read()).decode()
+        with open("Logo Provinsi Jawa Timur.png", "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
         st.markdown(f"""
-            <div style="display:flex;justify-content:center;margin-bottom:-30px;">
-                <img src="data:image/png;base64,{_logo_b64}" style="width:400px;pointer-events:none;" />
+            <div style="display:flex;justify-content:center;margin-bottom:25px;">
+                <img src="data:image/png;base64,{logo_b64}" style="width:380px;pointer-events:none;" />
             </div>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning(" File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
+        pass
 
     st.title("Login / Daftar Sistem Realisasi Belanja Jatim")
+
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
+    # ====================== TAB LOGIN ======================
     with tab_login:
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
-        st.markdown("**Masuk ke aplikasi**")
+
         remembered_username = cookies.get("remember_username", "")
         remembered_password = cookies.get("remember_password", "")
+
         username = st.text_input("Username", value=remembered_username, key="login_username_unique")
         password = st.text_input("Password", type="password", value=remembered_password, key="login_password_unique")
         remember_me = st.checkbox("Ingat saya", value=bool(remembered_username and remembered_password))
@@ -212,6 +250,7 @@ def show_auth_page():
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
                     st.session_state["nama_lengkap"] = users[username].get("nama_lengkap", username)
+
                     if remember_me:
                         cookies["remember_username"] = username
                         cookies["remember_password"] = password
@@ -219,33 +258,18 @@ def show_auth_page():
                         cookies.pop("remember_username", None)
                         cookies.pop("remember_password", None)
                     cookies.save()
-                    nama = users[username].get("nama_lengkap", username)
-                    import time
-                    st.markdown(f"""
-                        <style>
-                        @keyframes fadeInWelcome {{ 0% {{ opacity:0; transform:translateY(-20px); }} 100% {{ opacity:1; transform:translateY(0); }} }}
-                        .welcome-box {{ text-align:center; padding:40px; animation:fadeInWelcome 0.8s ease forwards; }}
-                        .welcome-box h2 {{ color:white !important; font-size:28px !important; font-weight:900 !important; text-shadow:2px 2px 8px rgba(0,0,0,0.8) !important; }}
-                        .welcome-box p {{ color:#f0f0f0 !important; font-size:16px !important; text-shadow:1px 1px 4px rgba(0,0,0,0.8) !important; }}
-                        </style>
-                        <div class="welcome-box">
-                            <h2>✅ Login Berhasil!</h2>
-                            <p>Selamat datang, <b>{nama}</b> 👋<br>Sedang memuat dashboard...</p>
-                        </div>
-                    """, unsafe_allow_html=True)
-                    bar = st.progress(0, text="Memuat sistem...")
-                    for i in range(1, 101):
-                        time.sleep(0.015)
-                        bar.progress(i, text=f"Memuat sistem... {i}%")
-                    time.sleep(0.3)
+
+                    nama = st.session_state["nama_lengkap"]
+                    st.success(f"✅ Login Berhasil! Selamat datang, **{nama}**")
+                    time.sleep(1.2)
                     st.rerun()
                 else:
                     st.error("**Password salah.** Coba lagi ya.")
             else:
                 st.error("**Username tidak ditemukan.** Pastikan sudah daftar.")
 
+    # ====================== TAB DAFTAR ======================
     with tab_register:
-        # Counter sebagai suffix key — naik setiap registrasi berhasil → semua widget dapat key baru → kosong otomatis
         if "reg_form_counter" not in st.session_state:
             st.session_state["reg_form_counter"] = 0
         _c = st.session_state["reg_form_counter"]
@@ -262,14 +286,27 @@ def show_auth_page():
 
         if new_password:
             _strength = check_password_strength(new_password)
-            _bar_pct  = int(_strength["score"] / 5 * 100)
+            _bar_pct = int(_strength["score"] / 5 * 100)
             def _mk_badge(ok, label):
-                bg = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"; mark = "✓" if ok else "✗"
+                bg = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
+                mark = "✓" if ok else "✗"
                 return f'<span style="background:{bg};color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">{mark} {label}</span>'
-            _badges = " ".join([_mk_badge(_strength["has_min_len"],"Min. 8 karakter"),_mk_badge(_strength["has_upper"],"Huruf Kapital"),_mk_badge(_strength["has_lower"],"Huruf Kecil"),_mk_badge(_strength["has_digit"],"Angka (0-9)"),_mk_badge(_strength["has_special"],"Karakter Spesial (!@#$...)")])
-            st.markdown(f'<div style="margin:-8px 0 10px 0;"><div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;"><div style="background:{_strength["color"]};width:{_bar_pct}%;height:6px;border-radius:10px;"></div></div><p style="color:{_strength["color"]}!important;font-weight:800!important;font-size:12px!important;margin:0 0 5px 0;">{_strength["emoji"]} Kekuatan Password: <b>{_strength["level"]}</b></p><div style="display:flex;flex-wrap:wrap;gap:4px;">{_badges}</div></div>', unsafe_allow_html=True)
-            if not _strength["is_strong"]:
-                st.warning("⚠️ Password belum cukup kuat! Lengkapi kriteria yang masih merah.")
+            _badges = " ".join([_mk_badge(_strength["has_min_len"],"Min. 8 karakter"),
+                                _mk_badge(_strength["has_upper"],"Huruf Kapital"),
+                                _mk_badge(_strength["has_lower"],"Huruf Kecil"),
+                                _mk_badge(_strength["has_digit"],"Angka (0-9)"),
+                                _mk_badge(_strength["has_special"],"Karakter Spesial")])
+            st.markdown(f'''
+                <div style="margin:-8px 0 10px 0;">
+                    <div style="background:rgba(255,255,255,0.2);border-radius:10px;height:6px;width:100%;margin-bottom:5px;">
+                        <div style="background:{_strength["color"]};width:{_bar_pct}%;height:6px;border-radius:10px;"></div>
+                    </div>
+                    <p style="color:{_strength["color"]}!important;font-weight:800!important;font-size:12px!important;margin:0 0 5px 0;">
+                        {_strength["emoji"]} Kekuatan Password: <b>{_strength["level"]}</b>
+                    </p>
+                    <div style="display:flex;flex-wrap:wrap;gap:4px;">{_badges}</div>
+                </div>
+            ''', unsafe_allow_html=True)
 
         with st.form(key=f"register_form_{_c}"):
             confirm_password = st.text_input("Konfirmasi Password", type="password", key=f"reg_confirm_{_c}")
@@ -290,23 +327,34 @@ def show_auth_page():
             elif not no_hp.strip(): error_msg = "Nomor HP harus diisi."
 
             if error_msg:
-                st.session_state["register_error"] = f"**Registrasi gagal:** {error_msg}"; st.rerun()
+                st.session_state["register_error"] = f"**Registrasi gagal:** {error_msg}"
+                st.rerun()
             else:
                 users = load_users()
                 if new_username in users:
-                    st.session_state["register_error"] = f"**Registrasi gagal:** Username '{new_username}' sudah digunakan."; st.rerun()
+                    st.session_state["register_error"] = f"**Username '{new_username}' sudah digunakan.**"
+                    st.rerun()
                 else:
                     hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-                    save_user(new_username, {"password": hashed, "nama_lengkap": nama_lengkap.strip(), "email": email.strip(), "tgl_lahir": str(tgl_lahir), "no_hp": no_hp.strip()})
-                    # Naikkan counter → semua widget dapat key baru → form kosong otomatis
+                    save_user(new_username, {
+                        "password": hashed,
+                        "nama_lengkap": nama_lengkap.strip(),
+                        "email": email.strip(),
+                        "tgl_lahir": str(tgl_lahir),
+                        "no_hp": no_hp.strip()
+                    })
                     st.session_state["reg_form_counter"] = _c + 1
                     st.session_state["register_success"] = f"✅ Akun **{new_username}** berhasil dibuat! Silakan login."
                     st.rerun()
 
+    # ====================== TAB LUPA PASSWORD ======================
     with tab_reset:
         st.markdown("**Lupa Password? Reset di sini**")
-        if st.session_state.get("reset_success"): st.success(st.session_state.pop("reset_success"))
-        if st.session_state.get("reset_error"):   st.error(st.session_state.pop("reset_error"))
+        if st.session_state.get("reset_success"): 
+            st.success(st.session_state.pop("reset_success"))
+        if st.session_state.get("reset_error"):   
+            st.error(st.session_state.pop("reset_error"))
+
         _reset_form_key = st.session_state.get("reset_form_counter", 0)
         with st.form(key=f"reset_form_{_reset_form_key}"):
             reset_username         = st.text_input("Username yang ingin direset", key=f"reset_username_unique_{_reset_form_key}")
@@ -314,6 +362,7 @@ def show_auth_page():
             new_password_reset     = st.text_input("Password Baru", type="password", key=f"reset_pw_unique_{_reset_form_key}")
             confirm_password_reset = st.text_input("Konfirmasi Password Baru", type="password", key=f"reset_confirm_unique_{_reset_form_key}")
             reset_button           = st.form_submit_button("Reset Password", type="primary", use_container_width=True)
+
         if reset_button:
             error_msg = ""
             if not reset_username.strip(): error_msg = "Username harus diisi."
@@ -321,22 +370,27 @@ def show_auth_page():
             elif not new_password_reset.strip(): error_msg = "Password baru harus diisi."
             elif not check_password_strength(new_password_reset)["is_strong"]: error_msg = "Password baru tidak cukup kuat!"
             elif new_password_reset != confirm_password_reset: error_msg = "Konfirmasi password tidak cocok."
+
             if error_msg:
-                st.session_state["reset_error"] = f"**Reset gagal:** {error_msg}"; st.rerun()
+                st.session_state["reset_error"] = f"**Reset gagal:** {error_msg}"
+                st.rerun()
             else:
                 users = load_users()
                 if reset_username not in users:
-                    st.session_state["reset_error"] = f"**Username '{reset_username}' tidak ditemukan.**"; st.rerun()
+                    st.session_state["reset_error"] = f"**Username '{reset_username}' tidak ditemukan.**"
+                    st.rerun()
                 elif users[reset_username].get("no_hp","").strip() != reset_no_hp.strip():
-                    st.session_state["reset_error"] = "**Nomor HP tidak sesuai.**"; st.rerun()
+                    st.session_state["reset_error"] = "**Nomor HP tidak sesuai.**"
+                    st.rerun()
                 else:
                     hashed = bcrypt.hashpw(new_password_reset.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     users[reset_username]["password"] = hashed
                     save_user(reset_username, users[reset_username])
                     st.session_state["reset_form_counter"] = _reset_form_key + 1
-                    st.session_state["reset_success"] = f"**Password berhasil direset!** Silakan login 🎉"; st.rerun()
-    st.markdown("---")
+                    st.session_state["reset_success"] = "**Password berhasil direset!** Silakan login 🎉"
+                    st.rerun()
 
+    st.markdown("---")
 # ───────────────────────────────────────────────
 #           INISIALISASI SESSION STATE
 # ───────────────────────────────────────────────
