@@ -120,9 +120,11 @@ def show_auth_page():
     st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
 
     import base64
+       # ── BACKGROUND BARU (Gambar yang sudah dibersihkan) ──
     try:
-        with open("thumb-1920-719571.jpg", "rb") as f:
+        with open("background_login.jpg", "rb") as f:   # Ganti nama file sesuai yang kamu simpan
             bg_data = base64.b64encode(f.read()).decode()
+        
         st.markdown(f"""
             <style>
             .stApp {{
@@ -132,53 +134,50 @@ def show_auth_page():
                 background-repeat: no-repeat;
                 background-attachment: fixed;
             }}
-            .block-container {{ position: relative; z-index: 1; }}
-            @keyframes fadeInDown {{
-                0%   {{ opacity: 0; transform: translateY(-30px); }}
-                100% {{ opacity: 1; transform: translateY(0); }}
+            .block-container {{ 
+                position: relative; 
+                z-index: 1; 
+                background: rgba(0, 0, 0, 0.25) !important;  /* overlay gelap agar teks jelas */
+                border-radius: 16px;
+                padding: 2rem !important;
+                max-width: 480px !important;
+                margin: 0 auto !important;
             }}
-            @keyframes fadeInUp {{
-                0%   {{ opacity: 0; transform: translateY(30px); }}
-                100% {{ opacity: 1; transform: translateY(0); }}
+            
+            /* Login Card Styling */
+            .stTabs {{ background: rgba(255,255,255,0.95) !important; border-radius: 12px; padding: 10px; }}
+            h1 {{ color: white !important; text-shadow: 2px 2px 8px rgba(0,0,0,0.8) !important; }}
+            .stMarkdown p, label, span {{ color: white !important; font-weight: 600 !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.7); }}
+            
+            /* Tombol Masuk */
+            .stButton > button {{
+                background: linear-gradient(90deg, #1e40af, #3b82f6) !important;
+                color: white !important;
+                font-weight: 700 !important;
+                border: none !important;
+                border-radius: 8px !important;
+                padding: 12px !important;
+                font-size: 16px !important;
             }}
-            @keyframes fadeIn {{ 0% {{ opacity:0; }} 100% {{ opacity:1; }} }}
-            [data-testid="stImage"] img {{ animation: fadeInDown 1s ease forwards; margin-bottom: -40px !important; display: block; }}
-            .block-container h1 {{ animation: fadeInDown 1.2s ease forwards; font-weight: 900 !important; color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.9) !important; }}
-            .stTabs {{ animation: fadeIn 1.5s ease forwards; }}
-            .block-container > div > div > div > div {{ animation: fadeInUp 1.4s ease forwards; }}
-            .block-container h2, .block-container h3 {{ font-weight: 900 !important; color: white !important; text-shadow: 2px 2px 4px rgba(0,0,0,0.9) !important; }}
-            .block-container p, .block-container label, .block-container span {{ font-weight: 700 !important; color: white !important; text-shadow: 1px 1px 3px rgba(0,0,0,0.9) !important; }}
-            .block-container {{ background: transparent !important; padding-top: 10rem !important; margin-top: 0 !important; }}
-            .stTextInput input {{ background: rgba(255,255,255,0.92) !important; font-weight: 600 !important; color: #111 !important; border: 1.5px solid #ccc !important; }}
-            .stTabs [data-baseweb="tab"] {{ font-weight: 700 !important; }}
-            [data-testid="stToolbar"] {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="stDecoration"] {{ display: none !important; visibility: hidden !important; }}
-            #MainMenu {{ display: none !important; visibility: hidden !important; }}
-            footer {{ display: none !important; visibility: hidden !important; }}
-            div[data-testid="stToolbarActions"] {{ display:none !important; visibility:hidden !important; }}
-            .stDeployButton {{ display:none !important; visibility:hidden !important; }}
-            [data-testid="stDeployButton"] {{ display:none !important; visibility:hidden !important; }}
-            div[style*="position: fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
-            div[style*="position:fixed"][style*="bottom"][style*="right"] {{ display:none !important; visibility:hidden !important; }}
-            [data-testid="stActionButtonIcon"] {{ display: none !important; visibility: hidden !important; }}
-            .stActionButton {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="baseButton-actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            button[kind="actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="ActionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="actionButton"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="viewerBadge"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="StatusWidget"] {{ display: none !important; visibility: hidden !important; }}
-            [class*="toolbarActions"] {{ display: none !important; visibility: hidden !important; }}
-            [data-testid="stToolbarActions"] {{ display: none !important; visibility: hidden !important; }}
-            div[class*="toolbar"] button {{ display: none !important; visibility: hidden !important; }}
-            header[data-testid="stHeader"] {{ background: transparent !important; border: none !important; box-shadow: none !important; }}
-            [data-testid="stHeader"] > * {{ display: none !important; }}
-            button[title="View fullscreen"] {{ display: none !important; visibility: hidden !important; }}
-            button[data-testid="StyledFullScreenButton"] {{ display: none !important; visibility: hidden !important; }}
+            .stButton > button:hover {{
+                background: linear-gradient(90deg, #1e3a8a, #2563eb) !important;
+                transform: translateY(-1px);
+            }}
+            
+            /* Sembunyikan semua elemen Streamlit default di pojok kanan bawah */
+            [data-testid="stToolbar"], [data-testid="stDecoration"], footer, 
+            .stDeployButton, [data-testid="stDeployButton"],
+            div[style*="position: fixed"][style*="bottom"][style*="right"],
+            button[title="View fullscreen"], 
+            [data-testid="StyledFullScreenButton"] {{
+                display: none !important;
+                visibility: hidden !important;
+            }}
             </style>
         """, unsafe_allow_html=True)
+        
     except FileNotFoundError:
-        pass
+        st.error("❌ File background_login.jpg tidak ditemukan. Pastikan file sudah disimpan di folder yang sama dengan app.py")
 
     try:
         import base64 as _b64
@@ -190,7 +189,7 @@ def show_auth_page():
             </div>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
-        st.warning("⚠️ File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
+        st.warning(" File 'Logo Provinsi Jawa Timur.png' tidak ditemukan!")
 
     st.title("Login / Daftar Sistem Realisasi Belanja Jatim")
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
