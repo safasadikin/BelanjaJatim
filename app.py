@@ -5,6 +5,7 @@ import io
 import re
 import os
 import bcrypt
+import secrets
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
@@ -69,6 +70,68 @@ def check_password_strength(password: str) -> dict:
         "has_upper": has_upper, "has_lower": has_lower, "has_digit": has_digit,
         "has_special": has_special, "has_min_len": has_min_len, "is_strong": score >= 4,
     }
+
+# ───────────────────────────────────────────────
+#           TOKEN MANAGER – INGAT SAYA
+# ───────────────────────────────────────────────
+
+def generate_token() -> str:
+    """Buat token acak 64 karakter hex."""
+    return secrets.token_hex(32)
+
+def save_remember_token(username: str, token: str):
+    """Simpan token ke Supabase tabel remember_tokens."""
+    try:
+        expires_at = (now_wib() + timedelta(days=30)).isoformat()
+        supabase.table("remember_tokens").upsert({
+            "username": username,
+            "token": token,
+            "expires_at": expires_at,
+        }).execute()
+        return True
+    except Exception as e:
+        st.error(f"Gagal simpan token: {e}")
+        return False
+
+def verify_remember_token(token: str):
+    """Verifikasi token & kembalikan username jika valid."""
+    try:
+        res = supabase.table("remember_tokens").select("*").eq("token", token).execute()
+        if not res.data:
+            return None
+        row = res.data[0]
+        expires_at = datetime.fromisoformat(row["expires_at"])
+        if now_wib() > expires_at:
+            # Token expired → hapus
+            supabase.table("remember_tokens").delete().eq("token", token).execute()
+            return None
+        return row["username"]
+    except Exception:
+        return None
+
+def delete_remember_token(token: str):
+    """Hapus token saat logout."""
+    try:
+        supabase.table("remember_tokens").delete().eq("token", token).execute()
+    except Exception:
+        pass
+
+# ───────────────────────────────────────────────
+#           AUTO-LOGIN DARI COOKIE TOKEN
+# ───────────────────────────────────────────────
+
+if "logged_in" not in st.session_state:
+    st.session_state["logged_in"] = False
+
+# Cek cookie token untuk auto-login
+if not st.session_state["logged_in"]:
+    _saved_token = cookies.get("remember_token", "")
+    if _saved_token:
+        _auto_user = verify_remember_token(_saved_token)
+        if _auto_user:
+            st.session_state["logged_in"] = True
+            st.session_state["current_user"] = _auto_user
+            st.session_state["remember_token"] = _saved_token
 
 # ───────────────────────────────────────────────
 #           SISTEM LOGIN + REGISTRASI + LUPA PASSWORD
@@ -188,10 +251,15 @@ def show_auth_page():
         if "logout_message" in st.session_state:
             st.success(st.session_state.pop("logout_message"))
         st.markdown("**Masuk ke aplikasi**")
-        remembered_username = cookies.get("remember_username", "")
-        username = st.text_input("Username", value=remembered_username, key="login_username_unique")
+        username = st.text_input("Username", key="login_username_unique")
         password = st.text_input("Password", type="password", key="login_password_unique")
-        remember_me = st.checkbox("Ingat saya di perangkat ini", value=bool(remembered_username))
+
+        # ── Ingat Saya: simpan token, bukan password ──
+        remember_me = st.checkbox(
+            "🔐 Ingat saya di perangkat ini (auto-login 30 hari)",
+            value=False,
+            help="Login otomatis tanpa perlu memasukkan password lagi selama 30 hari."
+        )
 
         if st.button("Masuk", type="primary", use_container_width=True):
             users = load_users()
@@ -200,11 +268,22 @@ def show_auth_page():
                 if bcrypt.checkpw(password.encode('utf-8'), stored_hash.encode('utf-8')):
                     st.session_state["logged_in"] = True
                     st.session_state["current_user"] = username
+
+                    # ── Kelola token "Ingat Saya" ──
                     if remember_me:
-                        cookies["remember_username"] = username
+                        new_token = generate_token()
+                        if save_remember_token(username, new_token):
+                            cookies["remember_token"] = new_token
+                            st.session_state["remember_token"] = new_token
+                            cookies.save()
                     else:
-                        cookies.pop("remember_username", None)
-                    cookies.save()
+                        # Hapus token lama jika ada
+                        old_token = cookies.get("remember_token", "")
+                        if old_token:
+                            delete_remember_token(old_token)
+                            cookies.pop("remember_token", None)
+                            cookies.save()
+
                     nama = users[username].get("nama_lengkap", username)
                     import time
                     st.markdown(f"""
@@ -231,7 +310,6 @@ def show_auth_page():
                 st.error("**Username tidak ditemukan.** Pastikan sudah daftar.")
 
     with tab_register:
-        # Counter sebagai suffix key — naik setiap registrasi berhasil → semua widget dapat key baru → kosong otomatis
         if "reg_form_counter" not in st.session_state:
             st.session_state["reg_form_counter"] = 0
         _c = st.session_state["reg_form_counter"]
@@ -284,7 +362,6 @@ def show_auth_page():
                 else:
                     hashed = bcrypt.hashpw(new_password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
                     save_user(new_username, {"password": hashed, "nama_lengkap": nama_lengkap.strip(), "email": email.strip(), "tgl_lahir": str(tgl_lahir), "no_hp": no_hp.strip()})
-                    # Naikkan counter → semua widget dapat key baru → form kosong otomatis
                     st.session_state["reg_form_counter"] = _c + 1
                     st.session_state["register_success"] = f"✅ Akun **{new_username}** berhasil dibuat! Silakan login."
                     st.rerun()
@@ -324,9 +401,6 @@ def show_auth_page():
 # ───────────────────────────────────────────────
 #           INISIALISASI SESSION STATE
 # ───────────────────────────────────────────────
-
-if "logged_in" not in st.session_state:
-    st.session_state["logged_in"] = False
 
 if not st.session_state["logged_in"]:
     show_auth_page()
@@ -530,14 +604,11 @@ def compute_pct(df):
 def save_to_history(df, tipe, tanggal_impor, tahun):
     dir_path      = HISTORY_DIR_BLUD if tipe == "BLUD" else HISTORY_DIR_NON_BLUD
     tanggal_clean = tanggal_impor.replace("/", "-")
-    # Catat waktu TEPAT saat fungsi ini dipanggil = waktu upload sebenarnya
     waktu_upload_aktual = now_wib()
     timestamp     = waktu_upload_aktual.strftime("%Y%m%d_%H%M%S")
     filename      = f"{tipe.lower()}_{tanggal_clean}_TA{tahun}_{timestamp}.csv"
     filepath      = os.path.join(dir_path, filename)
 
-    # Tulis baris metadata waktu upload di baris ke-1 CSV (sebelum header data)
-    # Format: #UPLOAD_TIME=DD/MM/YYYY HH:MM:SS
     waktu_str = waktu_upload_aktual.strftime("%d/%m/%Y %H:%M:%S")
     with open(filepath, "w", encoding="utf-8-sig") as f:
         f.write(f"#UPLOAD_TIME={waktu_str}\n")
@@ -548,7 +619,6 @@ def load_history_list(tipe):
     return sorted(Path(dir_path).glob("*.csv"), reverse=True)
 
 def load_history_file(filepath):
-    # Baca CSV, skip baris metadata #UPLOAD_TIME jika ada
     with open(filepath, encoding="utf-8-sig") as f:
         first = f.readline()
     skip = 1 if first.startswith("#UPLOAD_TIME=") else 0
@@ -559,20 +629,17 @@ def get_file_info(filepath):
     size_kb = round(p.stat().st_size / 1024, 1)
     name    = p.stem
 
-    # ── 1. Baca #UPLOAD_TIME dari baris pertama CSV (paling akurat) ──
     upload_time = None
     try:
         with open(filepath, encoding="utf-8-sig") as fh:
             first_line = fh.readline().strip()
         if first_line.startswith("#UPLOAD_TIME="):
             val = first_line.split("=", 1)[1].strip()
-            # Validasi format DD/MM/YYYY HH:MM:SS
             datetime.strptime(val, "%d/%m/%Y %H:%M:%S")
             upload_time = val
     except Exception:
         upload_time = None
 
-    # ── 2. Fallback: parse timestamp dari nama file ──
     m = re.match(
         r"^(blud|non-blud|non_blud|nonblud)_"
         r"(\d{2}-\d{2}-\d{4})_"
@@ -591,7 +658,6 @@ def get_file_info(filepath):
         except ValueError:
             pass
 
-    # ── 3. Last resort: waktu modifikasi file ──
     if not upload_time:
         upload_time = (datetime.fromtimestamp(p.stat().st_mtime) + timedelta(hours=7)).strftime("%d/%m/%Y %H:%M:%S")
 
@@ -603,7 +669,7 @@ def get_file_info(filepath):
     }
 
 # ───────────────────────────────────────────────
-#           PDF REPORT
+#           PDF REPORT  ← PERBAIKAN KOLOM KODE SKPD
 # ───────────────────────────────────────────────
 
 def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, tahun_anggaran=2026, tipe="blud"):
@@ -611,35 +677,109 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
     is_blud     = (str(tipe).lower() == "blud")
     is_gabungan = (str(tipe).lower() == "gabungan")
     page_size   = landscape(A4) if is_blud or is_gabungan else A4
-    doc = SimpleDocTemplate(buffer, pagesize=page_size, rightMargin=20, leftMargin=20, topMargin=30, bottomMargin=30)
+    doc = SimpleDocTemplate(
+        buffer, pagesize=page_size,
+        rightMargin=18, leftMargin=18,
+        topMargin=28, bottomMargin=28
+    )
     elements = []; styles = getSampleStyleSheet()
     tipe_label = "GABUNGAN (NON-BLUD + BLUD)" if is_gabungan else ("BLUD" if is_blud else "NON-BLUD")
     elements.append(Paragraph(f"LAPORAN REALISASI BELANJA JAWA TIMUR TA {tahun_anggaran} ({tipe_label})", styles["Heading1"]))
     elements.append(Paragraph(f"Data per tanggal: {tanggal_impor}", styles["Normal"]))
     elements.append(Paragraph(f"Dicetak pada: {now_wib().strftime('%d/%m/%Y %H:%M:%S')}", styles["Normal"]))
     elements.append(Spacer(1, 12))
-    summary_data  = [["Keterangan","Nilai"],["Total Anggaran",f"Rp {total_ang:,.0f}".replace(",",".")],["Total Realisasi",f"Rp {total_real:,.0f}".replace(",",".")],["% Realisasi",f"{total_persen:.2f}%"]]
+
+    summary_data  = [
+        ["Keterangan","Nilai"],
+        ["Total Anggaran",  f"Rp {total_ang:,.0f}".replace(",",".")],
+        ["Total Realisasi", f"Rp {total_real:,.0f}".replace(",",".")],
+        ["% Realisasi",     f"{total_persen:.2f}%"]
+    ]
     summary_table = Table(summary_data, colWidths=[2.5*inch, 3*inch])
-    summary_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("ALIGN",(0,0),(-1,-1),"CENTER"),("GRID",(0,0),(-1,-1),0.5,colors.grey),("FONTSIZE",(0,0),(-1,-1),9),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])]))
+    summary_table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
+        ("ALIGN",(0,0),(-1,-1),"CENTER"),
+        ("GRID",(0,0),(-1,-1),0.5,colors.grey),
+        ("FONTSIZE",(0,0),(-1,-1),9),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")])
+    ]))
     elements.append(summary_table); elements.append(Spacer(1,16))
+
+    # ── Lebar kolom diperbaiki: KODE SKPD lebih lebar agar tidak tumpang tindih ──
     if is_gabungan or is_blud:
+        # Landscape A4 usable width ≈ 11.1 inch − 2×0.25 = 10.6 inch
         headers    = ["No","Tipe","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.4*inch,0.8*inch,1.0*inch,2.6*inch,1.4*inch,1.4*inch,0.7*inch]
+        col_widths = [0.30*inch, 0.65*inch, 1.55*inch, 2.50*inch, 1.55*inch, 1.55*inch, 0.60*inch]
     else:
+        # Portrait A4 usable width ≈ 8.27 − 2×0.25 = 7.77 inch
         headers    = ["No","No Asal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
-        col_widths = [0.35*inch,0.4*inch,1.0*inch,2.3*inch,1.4*inch,1.4*inch,0.7*inch]
-    table_data = [headers]
+        col_widths = [0.28*inch, 0.32*inch, 1.55*inch, 1.90*inch, 1.45*inch, 1.45*inch, 0.60*inch]
+
+    # Style teks dalam sel agar wrap otomatis
+    normal_style = styles["Normal"].clone("CellNormal")
+    normal_style.fontSize = 7
+    normal_style.leading  = 9
+
+    header_style = styles["Normal"].clone("CellHeader")
+    header_style.fontSize   = 7
+    header_style.leading    = 9
+    header_style.textColor  = colors.white
+    header_style.fontName   = "Helvetica-Bold"
+
+    table_data = [[Paragraph(h, header_style) for h in headers]]
     df_reset = df.reset_index(drop=True)
+
     for urut, (_, row) in enumerate(df_reset.iterrows(), start=1):
-        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")[:40]
+        skpd_name = str(row.get("SKPD","") or row.get("NAMA SKPD","") or "")
+        kode_skpd = str(row.get("KODE SKPD",""))
         no_asal   = str(int(row["No"])) if "No" in row and str(row["No"]).replace(".0","").isdigit() else str(urut)
+
+        ang_val  = f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",",".")
+        real_val = f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",",".")
+        pct_val  = f"{float(row.get('PROSENTASE',0) or 0):.2f}%"
+
         if is_gabungan or is_blud:
-            row_list = [str(urut),str(row.get("TIPE","")),str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [
+                Paragraph(str(urut), normal_style),
+                Paragraph(str(row.get("TIPE","")), normal_style),
+                Paragraph(kode_skpd, normal_style),
+                Paragraph(skpd_name, normal_style),
+                Paragraph(ang_val, normal_style),
+                Paragraph(real_val, normal_style),
+                Paragraph(pct_val, normal_style),
+            ]
         else:
-            row_list = [str(urut),no_asal,str(row.get("KODE SKPD","")),skpd_name,f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",","."),f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",","."),f"{float(row.get('PROSENTASE',0) or 0):.2f}%"]
+            row_list = [
+                Paragraph(str(urut), normal_style),
+                Paragraph(no_asal, normal_style),
+                Paragraph(kode_skpd, normal_style),
+                Paragraph(skpd_name, normal_style),
+                Paragraph(ang_val, normal_style),
+                Paragraph(real_val, normal_style),
+                Paragraph(pct_val, normal_style),
+            ]
         table_data.append(row_list)
+
     detail_table = Table(table_data, colWidths=col_widths, repeatRows=1)
-    detail_table.setStyle(TableStyle([("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),("TEXTCOLOR",(0,0),(-1,0),colors.white),("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),("FONTSIZE",(0,0),(-1,-1),7),("ALIGN",(0,0),(-1,-1),"CENTER"),("ALIGN",(3,1),(3,-1),"LEFT"),("VALIGN",(0,0),(-1,-1),"MIDDLE"),("GRID",(0,0),(-1,-1),0.4,colors.grey),("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),("TOPPADDING",(0,0),(-1,-1),3),("BOTTOMPADDING",(0,0),(-1,-1),3)]))
+    detail_table.setStyle(TableStyle([
+        ("BACKGROUND",(0,0),(-1,0),colors.HexColor("#1e3a5f")),
+        ("TEXTCOLOR",(0,0),(-1,0),colors.white),
+        ("FONTNAME",(0,0),(-1,0),"Helvetica-Bold"),
+        ("FONTSIZE",(0,0),(-1,-1),7),
+        ("ALIGN",(0,0),(-1,-1),"CENTER"),
+        ("ALIGN",(3,1),(3,-1),"LEFT"),   # Nama SKPD kiri
+        ("ALIGN",(2,1),(2,-1),"LEFT"),   # Kode SKPD kiri
+        ("VALIGN",(0,0),(-1,-1),"MIDDLE"),
+        ("GRID",(0,0),(-1,-1),0.4,colors.grey),
+        ("ROWBACKGROUNDS",(0,1),(-1,-1),[colors.white,colors.HexColor("#f0f4ff")]),
+        ("TOPPADDING",(0,0),(-1,-1),3),
+        ("BOTTOMPADDING",(0,0),(-1,-1),3),
+        ("LEFTPADDING",(0,0),(-1,-1),3),
+        ("RIGHTPADDING",(0,0),(-1,-1),3),
+        ("WORDWRAP",(0,0),(-1,-1),True),
+    ]))
     elements.append(detail_table)
     doc.build(elements); buffer.seek(0)
     return buffer.getvalue()
@@ -667,13 +807,11 @@ st.sidebar.markdown("""
 </div>
 """, unsafe_allow_html=True)
 
-# ── Navigasi programatik ke History via session_state ──
 _nav = st.session_state.pop("navigate_to", None)
 if _nav and _nav in menu_options:
     default_idx = menu_options.index(_nav)
 else:
     default_idx = st.session_state.get("_menu_idx", 0)
-    # Jaga agar default_idx valid
     if default_idx >= len(menu_options):
         default_idx = 0
 
@@ -692,7 +830,6 @@ menu = st.sidebar.radio(
     }.get(x, x),
     label_visibility="collapsed"
 )
-# Simpan index pilihan saat ini
 st.session_state["_menu_idx"] = menu_options.index(menu)
 
 # ── USER & LOGOUT ──
@@ -710,6 +847,12 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
+    # Hapus token saat logout
+    _token_to_del = st.session_state.get("remember_token", "") or cookies.get("remember_token", "")
+    if _token_to_del:
+        delete_remember_token(_token_to_del)
+        cookies.pop("remember_token", None)
+        cookies.save()
     st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
     st.session_state["logged_in"] = False
     for key in list(st.session_state.keys()):
@@ -732,6 +875,7 @@ if "Upload Data" in menu:
     tipe_class  = "non-blud" if tipe_upload == "Non-BLUD" else "blud"
     tipe_icon   = "🔴" if tipe_upload == "Non-BLUD" else "🔵"
     menu_history = f"History ({tipe_upload})"
+    history_dir  = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
 
     tanggal_now = now_wib().strftime("%d %b %Y")
 
@@ -750,30 +894,27 @@ if "Upload Data" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── PAGE TITLE ──
     st.markdown(f"""
     <div class="page-title-pro">Upload Data Realisasi Belanja</div>
     <div class="page-subtitle-pro">Import file Excel untuk memperbarui data realisasi {tipe_upload} Jawa Timur</div>
     """, unsafe_allow_html=True)
 
-    # ── INFO BANNER ──
-    history_dir   = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
-    # Selalu baca ulang dari filesystem agar real-time setelah upload
+    # ── PERBAIKAN: Selalu baca filesystem secara langsung (real-time) ──
     history_files = sorted(Path(history_dir).glob("*.csv"), key=lambda x: x.stat().st_mtime, reverse=True)
     jumlah_file   = len(history_files)
 
     from datetime import date as _date
+
     if history_files:
-        # Ambil info file terbaru
-        newest_info   = get_file_info(history_files[0])
-        last_upload   = newest_info.get("upload_time", "–")
+        newest_info        = get_file_info(history_files[0])
+        last_upload        = newest_info.get("upload_time", "–")
         last_modified_date = datetime.fromtimestamp(history_files[0].stat().st_mtime).date()
-        selisih    = (_date.today() - last_modified_date).days
-        last_label = "Hari ini" if selisih == 0 else (f"{selisih} hari lalu" if selisih > 0 else "Baru saja")
-        last_class = "warn" if selisih > 7 else ""
+        selisih            = (_date.today() - last_modified_date).days
+        last_label         = "Hari ini" if selisih == 0 else (f"{selisih} hari lalu" if selisih > 0 else "Baru saja")
+        last_class         = "warn" if selisih > 7 else ""
         try:
             from datetime import datetime as _dt
-            _HARI = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+            _HARI   = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
             _parsed = _dt.strptime(last_upload, "%d/%m/%Y %H:%M:%S")
             last_short = f"{_HARI[_parsed.weekday()]}, {last_upload}"
         except Exception:
@@ -807,7 +948,7 @@ if "Upload Data" in menu:
     </div>
     """, unsafe_allow_html=True)
 
-    # ── STAT CARDS (selalu baca jumlah_file dari filesystem, bukan cache) ──
+    # ── STAT CARDS (baca langsung dari filesystem) ──
     st.markdown(f"""
     <div class="stat-grid">
         <div class="stat-card blue">
@@ -860,7 +1001,6 @@ if "Upload Data" in menu:
             excel = pd.ExcelFile(uploaded)
             sheet_names_upper = [str(s).upper().strip() for s in excel.sheet_names]
 
-            # ── Pilih sheet default sesuai tipe ──
             if tipe_upload == "BLUD":
                 preferred = ["SD REAL_BLUD", "SD_REAL_BLUD", "SDREAL_BLUD", "REAL BLUD", "BLUD"]
             else:
@@ -873,13 +1013,9 @@ if "Upload Data" in menu:
 
             sheet = st.selectbox("Pilih Sheet", excel.sheet_names, index=idx)
 
-            # ── Baca sheet: deteksi header otomatis ──
             raw = pd.read_excel(excel, sheet_name=sheet, header=None)
 
             if tipe_upload == "BLUD":
-                # ── Parse sheet BLUD / SD Real_BLUD ──
-                # Struktur: baris 0-1 = kosong/judul, baris 2 = header, baris 3 = nomor urut → skip
-                # Deteksi header row secara fleksibel
                 header_row_blud = 2
                 for _hi in range(min(6, len(raw))):
                     _row_vals = [str(v).strip().upper() for v in raw.iloc[_hi] if str(v).strip() not in ("NAN","")]
@@ -888,7 +1024,6 @@ if "Upload Data" in menu:
                 skip_rows_blud = [header_row_blud + 1]
 
                 df = pd.read_excel(excel, sheet_name=sheet, header=header_row_blud, skiprows=skip_rows_blud)
-                # Bersihkan nama kolom
                 cols_clean = []
                 seen = {}
                 for c in df.columns:
@@ -900,7 +1035,6 @@ if "Upload Data" in menu:
                     cols_clean.append(c2)
                 df.columns = cols_clean
 
-                # Map ke nama standar
                 col_map_blud = {
                     "NO": "NO", "KODE SKPD": "KODE SKPD", "UNNAMED: 2": "EMPTY",
                     "SKPD": "NAMA SKPD",
@@ -917,24 +1051,20 @@ if "Upload Data" in menu:
                 df = df.rename(columns=col_map_blud)
                 df = df.drop(columns=[c for c in ["NO","EMPTY"] if c in df.columns], errors="ignore")
 
-                # ── Normalisasi sebelum generate tabel turunan ──
                 df = normalize_headers(df)
                 df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
                 df = compute_pct(df)
 
-                # Filter hanya baris valid (ada nama SKPD & anggaran > 0)
                 nm_col = "NAMA SKPD" if "NAMA SKPD" in df.columns else ("SKPD" if "SKPD" in df.columns else None)
                 if nm_col and "ANGGARAN" in df.columns:
                     df = df[df[nm_col].notna() & (df[nm_col].astype(str).str.strip() != "") & (df["ANGGARAN"] > 0)]
 
-                # ── Generate Table Master_Unit dari SD Real_BLUD ──
                 df_master_blud = pd.DataFrame()
                 if nm_col and "KODE SKPD" in df.columns:
                     df_master_blud = df[["KODE SKPD", nm_col]].drop_duplicates(subset=["KODE SKPD"]).reset_index(drop=True)
                     df_master_blud.insert(0, "ID", range(1, len(df_master_blud)+1))
                     df_master_blud = df_master_blud.rename(columns={nm_col: "NAMA SKPD"})
 
-                # ── Generate Table Real_Belanja_BLUD ──
                 rb_cols = ["KODE SKPD", nm_col if nm_col else "NAMA SKPD", "ANGGARAN", "REALISASI", "PROSENTASE"]
                 df_real_blud = df[[c for c in rb_cols if c in df.columns]].copy()
                 df_real_blud.insert(0, "id", range(1, len(df_real_blud)+1))
@@ -942,12 +1072,10 @@ if "Upload Data" in menu:
                 if nm_col and nm_col != "NAMA SKPD":
                     df_real_blud = df_real_blud.rename(columns={nm_col: "NAMA SKPD"})
 
-                # Hitung total
                 _total_ang_blud  = float(df["ANGGARAN"].sum()) if "ANGGARAN" in df.columns else 0
                 _total_real_blud = float(df["REALISASI"].sum()) if "REALISASI" in df.columns else 0
                 _total_pct_blud  = round(_total_real_blud / _total_ang_blud * 100, 2) if _total_ang_blud > 0 else 0.0
 
-                # ── Simpan ke session_state ──
                 st.session_state["df_master_unit_blud"]      = df_master_blud.copy()
                 st.session_state["df_real_belanja_blud"]     = df_real_blud.copy()
                 st.session_state["blud_sd_real_parsed"]      = True
@@ -957,10 +1085,8 @@ if "Upload Data" in menu:
                 st.session_state["tahun_blud"]               = int(st.session_state.get("tahun_anggaran", 2026))
 
             else:
-                # ── Non-BLUD: deteksi apakah sheet ini SD_Real atau Table Real_Belanja ──
-                sheet_upper = str(sheet).upper().strip()
-                # Deteksi SD_Real: nama sheet cocok, ATAU kolom tunggal & baris pertama = "Belanja"
-                first_cell_val = str(raw.iloc[0, 0]).strip().upper() if len(raw) > 0 else ""
+                sheet_upper     = str(sheet).upper().strip()
+                first_cell_val  = str(raw.iloc[0, 0]).strip().upper() if len(raw) > 0 else ""
                 is_sd_real = sheet_upper in ["SD_REAL", "SD REAL", "SHEET1"] or (
                     len(raw.columns) == 1 and (
                         str(raw.columns[0]).upper().strip() == "BELANJA" or first_cell_val == "BELANJA"
@@ -968,16 +1094,7 @@ if "Upload Data" in menu:
                 )
 
                 if is_sd_real:
-                    # ── Parse SD_Real: format kolom tunggal berisi blok per SKPD ──
-                    # Pola per blok (9 baris): Nama SKPD, "SKPD", "Kode: X.XX...", NaN, "RpX,00Anggaran", "X.XX%", NaN, "RpX,00Realisasi Rill", NaN
-                    def parse_rp(s):
-                        s = str(s).replace("Rp","").replace(".","").replace(",",".")
-                        s = re.sub(r"[^0-9\.]", "", s.split(".")[0] + ("." + s.split(".")[1] if "." in s else ""))
-                        s = re.sub(r"[^0-9]", "", str(s).split(".")[0])
-                        return int(s) if s else 0
-
                     def parse_rp_full(s):
-                        # Ambil angka dari format "Rp1.425.508.583.583,00Anggaran"
                         s = str(s)
                         m2 = re.search(r"Rp([\d\.,]+)", s)
                         if not m2: return 0
@@ -990,22 +1107,16 @@ if "Upload Data" in menu:
                     i = 0
                     while i < len(raw_vals):
                         val = str(raw_vals[i]).strip()
-                        # Skip baris kosong, header "Belanja"
                         if not val or val.upper() in ("NAN", "BELANJA"):
                             i += 1; continue
-                        # Nama SKPD biasanya baris sebelum "SKPD"
                         if i + 1 < len(raw_vals) and str(raw_vals[i+1]).strip().upper() == "SKPD":
                             nama = val
-                            # Baris i+2: "Kode: X.XX...."
                             kode_raw = str(raw_vals[i+2]).strip() if i+2 < len(raw_vals) else ""
                             kode = kode_raw.replace("Kode:", "").strip()
-                            # Baris i+4: "RpX,00Anggaran"
                             anggaran_raw = str(raw_vals[i+4]).strip() if i+4 < len(raw_vals) else "0"
                             anggaran = parse_rp_full(anggaran_raw)
-                            # Baris i+5: "X.XX%"
                             pct_raw = str(raw_vals[i+5]).strip() if i+5 < len(raw_vals) else "0"
                             pct_val = float(re.sub(r"[^0-9\.]","", pct_raw)) if re.search(r"[\d]", pct_raw) else 0.0
-                            # Baris i+7: "RpX,00Realisasi Rill"
                             real_raw = str(raw_vals[i+7]).strip() if i+7 < len(raw_vals) else "0"
                             realisasi = parse_rp_full(real_raw)
                             records.append({
@@ -1020,11 +1131,10 @@ if "Upload Data" in menu:
                             i += 1
 
                     if not records:
-                        raise ValueError("Tidak ada data SKPD yang berhasil dibaca dari sheet SD_Real. Pastikan format file sesuai.")
+                        raise ValueError("Tidak ada data SKPD yang berhasil dibaca dari sheet SD_Real.")
 
                     df_parsed = pd.DataFrame(records)
 
-                    # ── Generate Table Master_Unit ──
                     auto_id_map = {
                         r["Kode SKPD"]: re.sub(r"[^0-9]","", r["Kode SKPD"]).ljust(15,"0")[:15]
                         for r in records
@@ -1034,12 +1144,10 @@ if "Upload Data" in menu:
                         for r in records
                     ]).drop_duplicates(subset=["Kode SKPD"]).reset_index(drop=True)
 
-                    # ── Generate Table Real_Belanja ──
                     df_real_belanja = df_parsed.copy()
                     df_real_belanja.insert(0, "No", range(1, len(df_real_belanja)+1))
                     df_real_belanja["Tanggal impor Data"] = tanggal_impor
 
-                    # ── Generate Lap RealBelanja ──
                     df_lap = df_parsed.copy()
                     df_lap.insert(0, "NO", range(1, len(df_lap)+1))
                     df_lap = df_lap.rename(columns={
@@ -1050,12 +1158,10 @@ if "Upload Data" in menu:
                         "Prosentase": "% BELANJA",
                     })
 
-                    # ── Hitung total dari Lap RealBelanja (sumber kebenaran angka) ──
                     _total_ang  = float(df_lap["ANGGARAN"].sum())
                     _total_real = float(df_lap["REALISASI"].sum())
                     _total_pct  = round(_total_real / _total_ang * 100, 2) if _total_ang > 0 else 0.0
 
-                    # ── Simpan ke session state untuk dashboard ──
                     st.session_state["df_master_unit"]      = df_master.copy()
                     st.session_state["df_real_belanja"]     = df_real_belanja.copy()
                     st.session_state["df_lap_real"]         = df_lap.copy()
@@ -1064,7 +1170,6 @@ if "Upload Data" in menu:
                     st.session_state["lap_total_realisasi"] = _total_real
                     st.session_state["lap_total_persen"]    = _total_pct
 
-                    # ── Bentuk df utama untuk dashboard & history (dari Real_Belanja) ──
                     df = df_real_belanja.copy()
                     df = df.rename(columns={
                         "Kode SKPD": "KODE SKPD",
@@ -1076,7 +1181,6 @@ if "Upload Data" in menu:
                     })
 
                 else:
-                    # Sheet Table Real_Belanja / format standar
                     header_row = 0
                     for i in range(min(5, len(raw))):
                         row_vals = [str(v).strip().upper() for v in raw.iloc[i] if str(v).strip() not in ("NAN","")]
@@ -1105,7 +1209,6 @@ if "Upload Data" in menu:
                     df = df.rename(columns=col_map_non)
                     st.session_state["sd_real_parsed"] = False
 
-            # Non-BLUD: normalize di sini (BLUD sudah dinormalize di atas)
             if tipe_upload == "Non-BLUD":
                 df = normalize_headers(df)
                 df = normalize_numeric(df, ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PROSENTASE","PERSEN SISA"])
@@ -1126,76 +1229,76 @@ if "Upload Data" in menu:
             else:
                 st.session_state["df_blud"] = df.copy()
 
-            # Simpan ke history dengan timestamp SEKARANG (real-time saat upload)
+            # ── Simpan ke history ──
             waktu_upload_sekarang = now_wib()
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
-            # Catat waktu upload terakhir ke session_state agar stat cards update
-            st.session_state[f"last_upload_time_{tipe_upload}"] = waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
-            st.session_state[f"last_upload_count_{tipe_upload}"] = len(sorted(Path(history_dir).glob("*.csv")))
 
-            st.success(f"✅ Data berhasil diimport & disimpan ke history!  {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
-
-            # ── Preview: jika BLUD → tampilkan semua tabel generate ──
-            if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed"):
-                st.markdown("""
-                <div class="pro-card" style="margin-top:20px;">
-                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD Real_BLUD</span></div>
-                </div>
-                """, unsafe_allow_html=True)
-                tab_mu_b, tab_rb_b, tab_all_b = st.tabs([" Table Master_Unit", " Table Real_Belanja_BLUD", " Data Lengkap BLUD"])
-                with tab_mu_b:
-                    st.dataframe(st.session_state["df_master_unit_blud"], use_container_width=True, hide_index=True)
-                with tab_rb_b:
-                    df_rb_b = st.session_state["df_real_belanja_blud"].copy()
-                    fmt_rb_b = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_rb_b.columns}
-                    fmt_rb_b.update({c: pct_fmt for c in ["PROSENTASE"] if c in df_rb_b.columns})
-                    st.dataframe(df_rb_b.style.format(fmt_rb_b), use_container_width=True, hide_index=True)
-                with tab_all_b:
-                    fmt_all_b = {}
-                    for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
-                        if col in df.columns: fmt_all_b[col] = rupiah
-                    for col in ["PROSENTASE","PERSEN SISA"]:
-                        if col in df.columns: fmt_all_b[col] = pct_fmt
-                    st.dataframe(df.style.format(fmt_all_b), use_container_width=True, hide_index=True)
-
-            # ── Preview: jika SD_Real → tampilkan semua tabel generate ──
-            elif tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed"):
-                st.markdown("""
-                <div class="pro-card" style="margin-top:20px;">
-                    <div class="pro-card-header"><span class="pro-card-title"> Preview Data — Hasil Generate dari SD_Real</span></div>
-                </div>
-                """, unsafe_allow_html=True)
-                tab_mu, tab_rb, tab_lap = st.tabs([" Table Master_Unit", " Table Real_Belanja", " Lap RealBelanja"])
-                with tab_mu:
-                    st.dataframe(st.session_state["df_master_unit"], use_container_width=True, hide_index=True)
-                with tab_rb:
-                    df_rb_prev = st.session_state["df_real_belanja"].copy()
-                    fmt_rb = {c: rupiah for c in ["Anggaran","Realisasi"] if c in df_rb_prev.columns}
-                    fmt_rb.update({c: pct_fmt for c in ["Prosentase"] if c in df_rb_prev.columns})
-                    st.dataframe(df_rb_prev.style.format(fmt_rb), use_container_width=True, hide_index=True)
-                with tab_lap:
-                    df_lap_prev = st.session_state["df_lap_real"].copy()
-                    fmt_lap = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_lap_prev.columns}
-                    fmt_lap.update({c: pct_fmt for c in ["% BELANJA"] if c in df_lap_prev.columns})
-                    st.dataframe(df_lap_prev.style.format(fmt_lap), use_container_width=True, hide_index=True)
-            else:
-                st.markdown("""
-                <div class="pro-card" style="margin-top:20px;">
-                    <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data</span></div>
-                </div>
-                """, unsafe_allow_html=True)
-                fmt_map = {}
-                for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
-                    if col in df.columns: fmt_map[col] = rupiah
-                for col in ["PROSENTASE","PERSEN SISA"]:
-                    if col in df.columns: fmt_map[col] = pct_fmt
-                st.dataframe(df.style.format(fmt_map), use_container_width=True, hide_index=True)
+            # ── PERBAIKAN: rerun agar stat cards baca filesystem terbaru ──
+            st.success(f"✅ Data berhasil diimport & disimpan ke history! {waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
+            st.rerun()
 
         except Exception as e:
             st.error(f"Upload gagal: {str(e)}")
 
-    # ── HISTORY TERBARU ──
-    # Refresh history_files setelah upload
+    # ── PREVIEW (hanya tampil jika sudah ada data di session) ──
+    if tipe_upload == "BLUD" and st.session_state.get("blud_sd_real_parsed") and st.session_state.get("df_blud") is not None:
+        df = st.session_state["df_blud"]
+        st.markdown("""
+        <div class="pro-card" style="margin-top:20px;">
+            <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data — Hasil Generate dari SD Real_BLUD</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        tab_mu_b, tab_rb_b, tab_all_b = st.tabs([" Table Master_Unit", " Table Real_Belanja_BLUD", " Data Lengkap BLUD"])
+        with tab_mu_b:
+            st.dataframe(st.session_state["df_master_unit_blud"], use_container_width=True, hide_index=True)
+        with tab_rb_b:
+            df_rb_b = st.session_state["df_real_belanja_blud"].copy()
+            fmt_rb_b = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_rb_b.columns}
+            fmt_rb_b.update({c: pct_fmt for c in ["PROSENTASE"] if c in df_rb_b.columns})
+            st.dataframe(df_rb_b.style.format(fmt_rb_b), use_container_width=True, hide_index=True)
+        with tab_all_b:
+            fmt_all_b = {}
+            for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
+                if col in df.columns: fmt_all_b[col] = rupiah
+            for col in ["PROSENTASE","PERSEN SISA"]:
+                if col in df.columns: fmt_all_b[col] = pct_fmt
+            st.dataframe(df.style.format(fmt_all_b), use_container_width=True, hide_index=True)
+
+    elif tipe_upload == "Non-BLUD" and st.session_state.get("sd_real_parsed") and st.session_state.get("df_non_blud") is not None:
+        st.markdown("""
+        <div class="pro-card" style="margin-top:20px;">
+            <div class="pro-card-header"><span class="pro-card-title"> Preview Data — Hasil Generate dari SD_Real</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        tab_mu, tab_rb, tab_lap = st.tabs([" Table Master_Unit", " Table Real_Belanja", " Lap RealBelanja"])
+        with tab_mu:
+            st.dataframe(st.session_state["df_master_unit"], use_container_width=True, hide_index=True)
+        with tab_rb:
+            df_rb_prev = st.session_state["df_real_belanja"].copy()
+            fmt_rb = {c: rupiah for c in ["Anggaran","Realisasi"] if c in df_rb_prev.columns}
+            fmt_rb.update({c: pct_fmt for c in ["Prosentase"] if c in df_rb_prev.columns})
+            st.dataframe(df_rb_prev.style.format(fmt_rb), use_container_width=True, hide_index=True)
+        with tab_lap:
+            df_lap_prev = st.session_state["df_lap_real"].copy()
+            fmt_lap = {c: rupiah for c in ["ANGGARAN","REALISASI"] if c in df_lap_prev.columns}
+            fmt_lap.update({c: pct_fmt for c in ["% BELANJA"] if c in df_lap_prev.columns})
+            st.dataframe(df_lap_prev.style.format(fmt_lap), use_container_width=True, hide_index=True)
+
+    elif tipe_upload == "Non-BLUD" and not st.session_state.get("sd_real_parsed") and st.session_state.get("df_non_blud") is not None:
+        df = st.session_state["df_non_blud"]
+        st.markdown("""
+        <div class="pro-card" style="margin-top:20px;">
+            <div class="pro-card-header"><span class="pro-card-title">🔍 Preview Data</span></div>
+        </div>
+        """, unsafe_allow_html=True)
+        fmt_map = {}
+        for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
+            if col in df.columns: fmt_map[col] = rupiah
+        for col in ["PROSENTASE","PERSEN SISA"]:
+            if col in df.columns: fmt_map[col] = pct_fmt
+        st.dataframe(df.style.format(fmt_map), use_container_width=True, hide_index=True)
+
+    # ── HISTORY TERBARU (selalu baca ulang filesystem) ──
     history_files = sorted(Path(history_dir).glob("*.csv"), reverse=True)
 
     if history_files:
@@ -1208,14 +1311,13 @@ if "Upload Data" in menu:
         """, unsafe_allow_html=True)
 
         for hf in history_files[:5]:
-            info      = get_file_info(hf)
-            fname     = hf.name
-            size_str  = f"{info['size_kb']} KB"
-            tgl_str   = info.get("tanggal_data", "–")
-            # Tampilkan waktu upload real-time dari timestamp di nama file
-            upload_str = info.get("upload_time", info.get("modified_time", "–"))
-            is_last   = (hf == history_files[:5][-1])
-            border    = "none" if is_last else "0.5px solid #f1f5f9"
+            info       = get_file_info(hf)
+            fname      = hf.name
+            size_str   = f"{info['size_kb']} KB"
+            tgl_str    = info.get("tanggal_data", "–")
+            upload_str = info.get("upload_time", "–")
+            is_last    = (hf == history_files[:5][-1])
+            border     = "none" if is_last else "0.5px solid #f1f5f9"
             st.markdown(f"""
             <div style="background:white;border-left:0.5px solid #e2e8f0;border-right:0.5px solid #e2e8f0;{'border-bottom:0.5px solid #e2e8f0;border-radius:0 0 12px 12px;' if is_last else ''}padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:{border};">
                 <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📗</div>
@@ -1229,7 +1331,6 @@ if "Upload Data" in menu:
             </div>
             """, unsafe_allow_html=True)
 
-        # ── TOMBOL "Lihat semua history" yang bisa diklik ──
         st.markdown('<div style="margin-top:10px;"></div>', unsafe_allow_html=True)
         if st.button(f" Lihat semua di menu History {tipe_upload} →", key="btn_goto_history", use_container_width=False):
             st.session_state["navigate_to"] = menu_history
@@ -1253,7 +1354,6 @@ elif "Dashboard (Non-BLUD)" in menu:
     pos = df_display.columns.get_loc("REALISASI")+1 if "REALISASI" in df_display.columns else len(df_display.columns)
     df_display.insert(pos, "TAHUN ANGGARAN", st.session_state["tahun_non_blud"])
 
-    # Gunakan total dari Lap RealBelanja jika tersedia (lebih akurat), fallback ke df
     if st.session_state.get("sd_real_parsed") and "lap_total_anggaran" in st.session_state:
         total_ang    = st.session_state["lap_total_anggaran"]
         total_real   = st.session_state["lap_total_realisasi"]
@@ -1302,14 +1402,12 @@ elif "Dashboard (Non-BLUD)" in menu:
     df_pct["PCT"]       = (df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
     df_top = df_pct.sort_values("PCT", ascending=False).head(10)
     if not df_top.empty:
-        # ── Grafik 1: Bar Chart ──
         fig = px.bar(df_top, x="PCT", y="NAMA_SKPD", orientation="h", title="Top 10 Non-BLUD", height=500, text="PCT", color_discrete_sequence=["#EF553B"])
         fig.update_traces(texttemplate='%{text:.1f}%', textposition='outside', textfont_size=12, cliponaxis=False, hovertemplate="<b>%{y}</b><br>PCT: %{x:.1f}%", customdata=df_top[["ANGGARAN","REALISASI"]].values)
         fig.update_layout(xaxis_title="Persentase Realisasi (%)", yaxis_title="Nama SKPD", yaxis=dict(autorange="reversed"), xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10), bargap=0.2, margin=dict(l=20,r=120,t=60,b=60), plot_bgcolor="#0e1117", paper_bgcolor="#0e1117", font=dict(color="#e0e0e0"))
         fig.add_vline(x=100, line_dash="dash", line_color="#ff4b4b", annotation_text="Target 100%", annotation_position="top right")
         st.plotly_chart(fig, use_container_width=True)
 
-        # ── Grafik 2: Donut + Heatmap berdampingan ──
         col_g1, col_g2 = st.columns(2)
         with col_g1:
             fig_donut = px.pie(
@@ -1355,7 +1453,6 @@ elif "Dashboard (Non-BLUD)" in menu:
             )
             st.plotly_chart(fig_heat, use_container_width=True)
 
-    # ── Tabel tambahan jika data berasal dari SD_Real ──
     if st.session_state.get("sd_real_parsed"):
         st.markdown("---")
         st.subheader(" Data Hasil Generate dari SD_Real")
@@ -1394,7 +1491,6 @@ elif "Dashboard (Non-BLUD)" in menu:
                 for c in ["KODE SKPD","NAMA SKPD"]:
                     if c in df_lap.columns: mask |= df_lap[c].astype(str).str.contains(q_lap, case=False, na=False)
                 df_lap = df_lap[mask]
-            # Tambah baris TOTAL
             if not df_lap.empty and "ANGGARAN" in df_lap.columns:
                 total_row = {c: "" for c in df_lap.columns}
                 total_row["NAMA SKPD"] = "TOTAL"
@@ -1408,22 +1504,14 @@ elif "Dashboard (Non-BLUD)" in menu:
             st.dataframe(df_lap.reset_index(drop=True).style.format(fmt_lap), use_container_width=True, hide_index=True)
 
     st.subheader("Export Data")
-
-    # ── Siapkan DataFrame CSV yang rapi: kolom terpisah, No urut + No Asal, angka penuh ──
     df_csv = df_sorted.reset_index(drop=True).copy()
-
-    # Hapus kolom duplikat Tanggal
     if "TANGGAL IMPOR DATA" in df_csv.columns and "Tanggal Impor Data" in df_csv.columns:
         df_csv = df_csv.drop(columns=["Tanggal Impor Data"])
     df_csv.columns = [c.strip() for c in df_csv.columns]
-
-    # Buat kolom No urut baru & No Asal
     no_asal = df_csv["No"].tolist() if "No" in df_csv.columns else list(range(1, len(df_csv)+1))
     df_csv = df_csv.drop(columns=["No"], errors="ignore")
     df_csv.insert(0, "No Asal", no_asal)
     df_csv.insert(0, "No", range(1, len(df_csv)+1))
-
-    # Format angka penuh (bukan scientific notation)
     for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
         if col in df_csv.columns:
             df_csv[col] = df_csv[col].apply(lambda x: f"{float(x):,.0f}".replace(",",".") if str(x).strip() not in ("","nan") else "")
@@ -1468,7 +1556,6 @@ elif "Dashboard (BLUD)" in menu:
     tanggal_blud = st.session_state.get("tanggal_impor", datetime.now().strftime("%d/%m/%Y"))
     st.caption(f"**Data BLUD per tanggal: {tanggal_blud}** | Tahun Anggaran: **{st.session_state['tahun_blud']}**")
 
-    # ── Tab navigasi: Master_Unit | Real_Belanja_BLUD | Dashboard ──
     dash_tab1, dash_tab2, dash_tab3 = st.tabs([" Table Master_Unit", " Table Real_Belanja_BLUD", " Dashboard BLUD"])
 
     with dash_tab1:
@@ -1504,7 +1591,6 @@ elif "Dashboard (BLUD)" in menu:
                 if col in df_rb_view.columns: fmt_rb[col] = rupiah
             if "PROSENTASE" in df_rb_view.columns: fmt_rb["PROSENTASE"] = pct_fmt
             st.dataframe(df_rb_view.style.format(fmt_rb), use_container_width=True, hide_index=True)
-            # Download Real_Belanja_BLUD
             csv_rb = df_rb.to_csv(index=False).encode("utf-8-sig")
             st.download_button(" Download CSV Real_Belanja_BLUD", csv_rb, "real_belanja_blud.csv", "text/csv", key="dl_rb_blud")
         else:
@@ -1695,7 +1781,6 @@ elif "History (Non-BLUD)" in menu:
     info          = get_file_info(selected_path)
     df_hist       = load_history_file(selected_path)
 
-    # ── Info card detail ──
     st.markdown(f"""
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #7c3aed;">
