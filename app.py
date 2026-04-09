@@ -779,7 +779,6 @@ menu = st.sidebar.radio(
 st.session_state["_menu_idx"] = menu_options.index(menu)
 
 # ── USER PROFILE & LOGOUT ──
-st.sidebar.markdown("<div style='flex:1'></div>", unsafe_allow_html=True)
 _admin_badge = '<div style="font-size:10px;color:rgba(255,255,255,0.35);">Administrator</div>' if current_user in ADMIN_USERS else ""
 st.sidebar.markdown(f"""
 <div style="padding:10px 16px 8px;border-top:0.5px solid rgba(255,255,255,0.07);margin-top:12px;">
