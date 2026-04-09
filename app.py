@@ -263,7 +263,7 @@ def show_auth_page():
         username    = st.text_input("Username", value=saved_username, key="login_username")
         password    = st.text_input("Password", type="password", value=saved_password, key="login_password")
         remember_me = st.checkbox(
-            " Ingat saya",
+            "🔒 Ingat saya selama 30 hari",
             value=bool(saved_username),
             help="Login otomatis tanpa perlu memasukkan username & password lagi selama 30 hari."
         )
@@ -794,19 +794,22 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
-    # Hapus token dari Supabase & cookie remember_token
+    # Hapus token dari Supabase & cookie remember_token (non-blocking)
     _token_del = st.session_state.get("remember_token", "") or cookies.get("remember_token", "")
     if _token_del:
-        delete_remember_token(_token_del)
+        try: delete_remember_token(_token_del)
+        except: pass
         cookies.pop("remember_token", None)
     # JANGAN hapus saved_username & saved_password → supaya tetap pre-fill di form login
-    cookies.save()
-    st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
-    st.session_state["logged_in"] = False
+    # Bersihkan session state dulu sebelum save cookie agar lebih cepat
+    _logout_msg = "Anda telah berhasil logout. Silakan login kembali."
     for key in list(st.session_state.keys()):
-        if key not in ["logged_in", "logout_message"]:
-            del st.session_state[key]
+        del st.session_state[key]
+    st.session_state["logged_in"] = False
+    st.session_state["logout_message"] = _logout_msg
+    st.cache_data.clear()
     st.query_params.clear()
+    cookies.save()
     st.rerun()
 
 # ───────────────────────────────────────────────
