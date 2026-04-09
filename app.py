@@ -263,7 +263,7 @@ def show_auth_page():
         username    = st.text_input("Username", value=saved_username, key="login_username")
         password    = st.text_input("Password", type="password", value=saved_password, key="login_password")
         remember_me = st.checkbox(
-            " Ingat saya",
+            "🔒 Ingat saya selama 30 hari",
             value=bool(saved_username),
             help="Login otomatis tanpa perlu memasukkan username & password lagi selama 30 hari."
         )
@@ -502,6 +502,49 @@ st.markdown("""
 .info-banner-stat-val   { font-size: 18px; font-weight: 700; color: white; }
 .info-banner-stat-label { font-size: 10px; color: rgba(255,255,255,0.6); text-transform: uppercase; letter-spacing: 0.05em; }
 .info-banner-divider    { width: 1px; background: rgba(255,255,255,0.2); height: 36px; align-self: center; }
+
+/* ── RESPONSIVE <= 1280px (laptop biasa) ── */
+@media (max-width: 1280px) {
+    .stat-grid { gap: 10px; }
+    .stat-val  { font-size: 17px !important; }
+    .stat-label { font-size: 9px !important; }
+    .page-title-pro { font-size: 18px !important; }
+    .page-subtitle-pro { font-size: 12px !important; }
+    .info-banner { padding: 12px 16px !important; }
+    .info-banner-title { font-size: 12px !important; }
+    .info-banner-sub   { font-size: 11px !important; }
+    .info-banner-stat-val { font-size: 15px !important; }
+    .info-banner-stats { gap: 12px !important; }
+    [data-testid="stAppViewContainer"] > .main .block-container {
+        padding-left: 1.5rem !important; padding-right: 1.5rem !important; max-width: 100% !important;
+    }
+    [data-testid="stMetricValue"] { font-size: 1.1rem !important; }
+    [data-testid="stMetricLabel"] { font-size: 0.75rem !important; }
+    h1 { font-size: 1.5rem !important; }
+    h2 { font-size: 1.2rem !important; }
+    h3 { font-size: 1rem !important; }
+}
+
+/* ── RESPONSIVE <= 1024px (ThinkPad / layar kecil) ── */
+@media (max-width: 1024px) {
+    .stat-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    .stat-val  { font-size: 15px !important; }
+    .page-topbar { flex-direction: column !important; align-items: flex-start !important; gap: 8px !important; padding: 10px 14px !important; }
+    .info-banner { flex-direction: column !important; align-items: flex-start !important; }
+    .info-banner-stats { width: 100% !important; justify-content: flex-start !important; }
+    .info-banner-divider { display: none !important; }
+    .page-title-pro { font-size: 16px !important; }
+    [data-testid="stSidebar"] { min-width: 200px !important; max-width: 220px !important; }
+    [data-testid="stAppViewContainer"] > .main .block-container {
+        padding-left: 1rem !important; padding-right: 1rem !important;
+    }
+    [data-testid="stMetricValue"] { font-size: 1rem !important; }
+    [data-testid="stTabs"] button { font-size: 12px !important; padding: 6px 10px !important; }
+    .stButton > button { font-size: 12px !important; padding: 6px 12px !important; }
+    h1 { font-size: 1.3rem !important; }
+    h2 { font-size: 1.1rem !important; }
+    h3 { font-size: 0.95rem !important; }
+}
 </style>
 """, unsafe_allow_html=True)
 
