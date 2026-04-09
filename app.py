@@ -809,13 +809,6 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
     st.query_params.clear()
     st.rerun()
 
-if current_user in ADMIN_USERS:
-    with st.sidebar.expander("⚙ Developer Tools", expanded=False):
-        st.caption("Hanya tersedia untuk akun admin.")
-        if st.button("🔄 Clear Cache & Rerun", use_container_width=True, key="dev_clear_cache"):
-            st.cache_data.clear()
-            st.rerun()
-
 # ───────────────────────────────────────────────
 #           UPLOAD DATA
 # ───────────────────────────────────────────────
