@@ -1462,17 +1462,114 @@ elif "Dashboard Gabungan" in menu:
         if "PROSENTASE" in df_view.columns: fmt_map["PROSENTASE"]=pct_fmt
         st.dataframe(df_view.style.format(fmt_map),use_container_width=True,hide_index=True)
 
-        st.subheader("Top 10 Persentase Realisasi Tertinggi (Gabungan)")
+        import plotly.graph_objects as go
+
+        # ── Persiapan data ──
         df_pct=df_all[df_all["ANGGARAN"]>0].copy()
         df_pct["NAMA_SKPD"]=coalesce_name(df_pct).fillna("–").astype(str).str.strip()
         df_pct["PCT"]=(df_pct["REALISASI"]/df_pct["ANGGARAN"].replace(0,pd.NA)*100).round(1)
         df_top=df_pct.sort_values("PCT",ascending=False).head(10)
+
+        # ── Ringkasan Non-BLUD vs BLUD ──
+        ang_non  = float(df_non["ANGGARAN"].sum())
+        real_non = float(df_non["REALISASI"].sum())
+        ang_blud = float(df_blud["ANGGARAN"].sum()) if "ANGGARAN" in df_blud.columns else 0
+        real_blud= float(df_blud["REALISASI"].sum()) if "REALISASI" in df_blud.columns else 0
+        pct_non  = (real_non/ang_non*100) if ang_non>0 else 0
+        pct_blud = (real_blud/ang_blud*100) if ang_blud>0 else 0
+        n_non    = len(df_non)
+        n_blud   = len(df_blud)
+
+        # ── 1. BAR CHART Top 10 ──
+        st.subheader("Top 10 Persentase Realisasi Tertinggi (Gabungan)")
         if not df_top.empty:
             fig=px.bar(df_top,x="PCT",y="NAMA_SKPD",color="TIPE",orientation="h",title="Top 10 Gabungan",height=500,color_discrete_map={"BLUD":"#636EFA","Non-BLUD":"#EF553B"},text="PCT")
             fig.update_traces(texttemplate='%{text:.1f}%',textposition='outside',textfont_size=12,cliponaxis=False)
             fig.update_layout(xaxis_title="Persentase (%)",yaxis_title="Nama SKPD",yaxis=dict(autorange="reversed"),xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10),bargap=0.2,margin=dict(l=20,r=120,t=60,b=60),plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"))
             fig.add_vline(x=100,line_dash="dash",line_color="#ff4b4b",annotation_text="Target 100%",annotation_position="top right")
             st.plotly_chart(fig,use_container_width=True)
+
+        st.markdown("---")
+
+        # ── 2. DONUT + HEATMAP Top 10 ──
+        if not df_top.empty:
+            col_v1,col_v2=st.columns(2)
+            with col_v1:
+                fig_donut=px.pie(df_top,values="PCT",names="NAMA_SKPD",title="Proporsi % Realisasi — Top 10 Gabungan",hole=0.45,height=460,color_discrete_map={"BLUD":"#636EFA","Non-BLUD":"#EF553B"},color="TIPE" if "TIPE" in df_top.columns else None)
+                fig_donut.update_traces(textposition="inside",textinfo="percent+label")
+                fig_donut.update_layout(showlegend=False,plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=10,r=10,t=60,b=10),annotations=[dict(text="Top 10",x=0.5,y=0.5,font_size=16,showarrow=False,font_color="#e0e0e0")])
+                st.plotly_chart(fig_donut,use_container_width=True)
+            with col_v2:
+                df_ranked=df_top.sort_values("PCT",ascending=False).reset_index(drop=True)
+                fig_heat=go.Figure(go.Heatmap(z=[df_ranked["PCT"].tolist()],x=df_ranked["NAMA_SKPD"].tolist(),y=["% Realisasi"],colorscale="Turbo",zmin=df_ranked["PCT"].min()*0.85,zmax=df_ranked["PCT"].max()*1.05,text=[[f"{v:.1f}%" for v in df_ranked["PCT"].tolist()]],texttemplate="%{text}",textfont={"size":12,"color":"white"},showscale=True))
+                fig_heat.update_layout(title=dict(text="Heatmap % Realisasi — Top 10 Gabungan",font=dict(size=14,color="#e0e0e0")),height=460,xaxis=dict(tickangle=-35,tickfont=dict(size=9,color="#cccccc"),side="bottom"),yaxis=dict(tickfont=dict(size=11,color="#cccccc")),plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=10,r=60,t=60,b=140))
+                st.plotly_chart(fig_heat,use_container_width=True)
+
+        st.markdown("---")
+
+        # ── 3. GROUPED BAR: Anggaran vs Realisasi Non-BLUD vs BLUD ──
+        st.subheader("Perbandingan Anggaran vs Realisasi: Non-BLUD vs BLUD")
+        fig_grp=go.Figure()
+        fig_grp.add_trace(go.Bar(name="Anggaran Non-BLUD",x=["Non-BLUD"],y=[ang_non],marker_color="#EF553B",opacity=0.7,text=[f"Rp {ang_non/1e12:.2f}T"],textposition="outside"))
+        fig_grp.add_trace(go.Bar(name="Realisasi Non-BLUD",x=["Non-BLUD"],y=[real_non],marker_color="#EF553B",text=[f"Rp {real_non/1e12:.2f}T"],textposition="outside"))
+        fig_grp.add_trace(go.Bar(name="Anggaran BLUD",x=["BLUD"],y=[ang_blud],marker_color="#636EFA",opacity=0.7,text=[f"Rp {ang_blud/1e12:.2f}T"],textposition="outside"))
+        fig_grp.add_trace(go.Bar(name="Realisasi BLUD",x=["BLUD"],y=[real_blud],marker_color="#636EFA",text=[f"Rp {real_blud/1e12:.2f}T"],textposition="outside"))
+        fig_grp.update_layout(barmode="group",height=420,plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),yaxis_title="Nilai (Rupiah)",margin=dict(l=20,r=20,t=40,b=40),legend=dict(orientation="h",yanchor="bottom",y=1.02,xanchor="right",x=1))
+        st.plotly_chart(fig_grp,use_container_width=True)
+
+        st.markdown("---")
+
+        # ── 4. GAUGE CHART % Realisasi Gabungan ──
+        st.subheader("Gauge Realisasi Gabungan")
+        col_g1,col_g2,col_g3=st.columns(3)
+        def make_gauge(title,pct,color):
+            fig_g=go.Figure(go.Indicator(
+                mode="gauge+number+delta",value=round(pct,2),
+                title={"text":title,"font":{"color":"#e0e0e0","size":13}},
+                number={"suffix":"%","font":{"color":"#e0e0e0","size":28}},
+                delta={"reference":100,"valueformat":".1f","suffix":"%"},
+                gauge={"axis":{"range":[0,100],"tickcolor":"#e0e0e0","tickfont":{"color":"#e0e0e0"}},
+                       "bar":{"color":color},"bgcolor":"#1e293b",
+                       "steps":[{"range":[0,25],"color":"#1e293b"},{"range":[25,75],"color":"#0f172a"},{"range":[75,100],"color":"#0d1117"}],
+                       "threshold":{"line":{"color":"#ff4b4b","width":3},"thickness":0.75,"value":100}}))
+            fig_g.update_layout(height=280,plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",margin=dict(l=20,r=20,t=60,b=20))
+            return fig_g
+        with col_g1: st.plotly_chart(make_gauge("% Realisasi Non-BLUD",pct_non,"#EF553B"),use_container_width=True)
+        with col_g2: st.plotly_chart(make_gauge("% Realisasi BLUD",pct_blud,"#636EFA"),use_container_width=True)
+        with col_g3: st.plotly_chart(make_gauge("% Realisasi Gabungan",pct_all,"#00cc96"),use_container_width=True)
+
+        st.markdown("---")
+
+        # ── 5. SCATTER: Anggaran vs Realisasi per SKPD ──
+        st.subheader("Scatter Plot: Anggaran vs Realisasi per SKPD")
+        df_sc=df_all[df_all["ANGGARAN"]>0].copy()
+        df_sc["NAMA_SKPD"]=coalesce_name(df_sc).fillna("–").astype(str).str.strip()
+        df_sc["PCT"]=(df_sc["REALISASI"]/df_sc["ANGGARAN"].replace(0,pd.NA)*100).round(1).fillna(0)
+        fig_sc=px.scatter(df_sc,x="ANGGARAN",y="REALISASI",color="TIPE",hover_name="NAMA_SKPD",size="PCT",size_max=30,
+                          color_discrete_map={"BLUD":"#636EFA","Non-BLUD":"#EF553B"},
+                          title="Anggaran vs Realisasi per SKPD (ukuran = % realisasi)",height=500,
+                          labels={"ANGGARAN":"Anggaran (Rp)","REALISASI":"Realisasi (Rp)"})
+        fig_sc.update_layout(plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=20,r=20,t=60,b=40))
+        # Garis diagonal (ideal 100%)
+        _max_val=max(df_sc["ANGGARAN"].max(),df_sc["REALISASI"].max())
+        fig_sc.add_shape(type="line",x0=0,y0=0,x1=_max_val,y1=_max_val,line=dict(color="#ff4b4b",dash="dash",width=1))
+        fig_sc.add_annotation(x=_max_val*0.85,y=_max_val*0.95,text="Target 100%",showarrow=False,font=dict(color="#ff4b4b",size=11))
+        st.plotly_chart(fig_sc,use_container_width=True)
+
+        st.markdown("---")
+
+        # ── 6. TREEMAP ──
+        st.subheader("Treemap Realisasi per SKPD")
+        df_tm=df_all[df_all["REALISASI"]>0].copy()
+        df_tm["NAMA_SKPD"]=coalesce_name(df_tm).fillna("–").astype(str).str.strip()
+        df_tm["PCT"]=(df_tm["REALISASI"]/df_tm["ANGGARAN"].replace(0,pd.NA)*100).round(1).fillna(0)
+        fig_tm=px.treemap(df_tm,path=["TIPE","NAMA_SKPD"],values="REALISASI",color="PCT",
+                          color_continuous_scale="RdYlGn",color_continuous_midpoint=50,
+                          title="Treemap Realisasi — ukuran = nilai realisasi, warna = % realisasi",height=600,
+                          hover_data={"PCT":True,"REALISASI":True})
+        fig_tm.update_layout(plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=10,r=10,t=50,b=10))
+        fig_tm.update_traces(texttemplate="<b>%{label}</b><br>%{color:.1f}%",textfont_size=11)
+        st.plotly_chart(fig_tm,use_container_width=True)
 
     st.subheader("Export Gabungan")
     st.download_button("Download CSV Gabungan",df_all.to_csv(index=False).encode("utf-8-sig"),"realisasi_gabungan.csv","text/csv")
