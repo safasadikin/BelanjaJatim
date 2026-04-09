@@ -256,11 +256,12 @@ def show_auth_page():
 
         st.markdown("**Masuk ke aplikasi**")
 
-        # ── Ambil username tersimpan dari cookie (untuk pre-fill) ──
+        # ── Ambil username & password tersimpan dari cookie (untuk pre-fill) ──
         saved_username = cookies.get("saved_username", "")
+        saved_password = cookies.get("saved_password", "")
 
         username    = st.text_input("Username", value=saved_username, key="login_username")
-        password    = st.text_input("Password", type="password", key="login_password")
+        password    = st.text_input("Password", type="password", value=saved_password, key="login_password")
         remember_me = st.checkbox(
             "🔒 Ingat saya selama 30 hari",
             value=bool(saved_username),
@@ -281,16 +282,18 @@ def show_auth_page():
                         new_token = generate_token()
                         if save_remember_token(username, new_token):
                             cookies["remember_token"]  = new_token
-                            cookies["saved_username"]  = username   # pre-fill username
+                            cookies["saved_username"]  = username
+                            cookies["saved_password"]  = password  # disimpan terenkripsi oleh EncryptedCookieManager
                             st.session_state["remember_token"] = new_token
                             cookies.save()
                     else:
-                        # Hapus token & username tersimpan
+                        # Hapus token & username & password tersimpan
                         old_token = cookies.get("remember_token", "")
                         if old_token:
                             delete_remember_token(old_token)
                         cookies.pop("remember_token", None)
                         cookies.pop("saved_username", None)
+                        cookies.pop("saved_password", None)
                         cookies.save()
 
                     nama = users[username].get("nama_lengkap", username)
@@ -796,7 +799,7 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
     if _token_del:
         delete_remember_token(_token_del)
         cookies.pop("remember_token", None)
-    # JANGAN hapus saved_username → supaya username tetap pre-fill di form login
+    # JANGAN hapus saved_username & saved_password → supaya tetap pre-fill di form login
     cookies.save()
     st.session_state["logout_message"] = "Anda telah berhasil logout. Silakan login kembali."
     st.session_state["logged_in"] = False
