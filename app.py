@@ -848,9 +848,12 @@ if "Upload Data" in menu:
 
     from datetime import date as _date
     _HARI = ["Senin","Selasa","Rabu","Kamis","Jumat","Sabtu","Minggu"]
+    # Cek apakah ada waktu upload real-time dari session state (saat user baru saja upload)
+    _realtime_upload = st.session_state.get(f"last_upload_time_{tipe_upload}", "")
     if history_files:
         newest_info = get_file_info(history_files[0])
-        last_upload = newest_info.get("upload_time","–")
+        # Prioritaskan waktu real-time dari session state jika ada
+        last_upload = _realtime_upload if _realtime_upload else newest_info.get("upload_time","–")
         selisih     = (_date.today() - datetime.fromtimestamp(history_files[0].stat().st_mtime).date()).days
         last_label  = "Hari ini" if selisih == 0 else f"{selisih} hari lalu"
         last_class  = "warn" if selisih > 7 else ""
@@ -1075,8 +1078,10 @@ if "Upload Data" in menu:
             if tipe_upload=="Non-BLUD": st.session_state["df_non_blud"]=df.copy()
             else:                       st.session_state["df_blud"]=df.copy()
 
+            _waktu_upload_sekarang = now_wib()
+            st.session_state[f"last_upload_time_{tipe_upload}"] = _waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
-            st.success(f"✅ Data berhasil diimport & disimpan! {now_wib().strftime('%d/%m/%Y %H:%M:%S')}")
+            st.success(f"✅ Data berhasil diimport & disimpan! {_waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
             st.rerun()
 
         except Exception as e:
@@ -1379,6 +1384,20 @@ elif "Dashboard (BLUD)" in menu:
             fig.update_layout(xaxis_title="Persentase Realisasi (%)",yaxis_title="Nama SKPD",yaxis=dict(autorange="reversed"),xaxis=dict(range=[0,max(120,df_top["PCT"].max()+10)],dtick=10),bargap=0.2,margin=dict(l=20,r=120,t=60,b=60),plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"))
             fig.add_vline(x=100,line_dash="dash",line_color="#ff4b4b",annotation_text="Target 100%",annotation_position="top right")
             st.plotly_chart(fig,use_container_width=True)
+
+            # Pie chart + Heatmap (seperti dashboard Non-BLUD)
+            col_g1,col_g2=st.columns(2)
+            with col_g1:
+                fig_donut=px.pie(df_top,values="PCT",names="NAMA_SKPD",title="Proporsi % Realisasi — Top 10 BLUD",hole=0.45,height=480,color_discrete_sequence=px.colors.sequential.Blues_r)
+                fig_donut.update_traces(textposition="inside",textinfo="percent+label")
+                fig_donut.update_layout(showlegend=False,plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=10,r=10,t=60,b=10),annotations=[dict(text="Top 10",x=0.5,y=0.5,font_size=16,showarrow=False,font_color="#e0e0e0")])
+                st.plotly_chart(fig_donut,use_container_width=True)
+            with col_g2:
+                import plotly.graph_objects as go
+                df_ranked=df_top.sort_values("PCT",ascending=False).reset_index(drop=True)
+                fig_heat=go.Figure(go.Heatmap(z=[df_ranked["PCT"].tolist()],x=df_ranked["NAMA_SKPD"].tolist(),y=["% Realisasi"],colorscale="Turbo",zmin=df_ranked["PCT"].min()*0.85,zmax=df_ranked["PCT"].max()*1.05,text=[[f"{v:.1f}%" for v in df_ranked["PCT"].tolist()]],texttemplate="%{text}",textfont={"size":12,"color":"white"},showscale=True))
+                fig_heat.update_layout(title=dict(text="Heatmap % Realisasi — Top 10 BLUD",font=dict(size=14,color="#e0e0e0")),height=480,xaxis=dict(tickangle=-35,tickfont=dict(size=9,color="#cccccc"),side="bottom"),yaxis=dict(tickfont=dict(size=11,color="#cccccc")),plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",font=dict(color="#e0e0e0"),margin=dict(l=10,r=60,t=60,b=140))
+                st.plotly_chart(fig_heat,use_container_width=True)
 
         st.subheader("Export Data")
         st.download_button("Download CSV",df_sorted.to_csv(index=False).encode("utf-8-sig"),"realisasi_blud.csv","text/csv")
