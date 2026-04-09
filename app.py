@@ -794,14 +794,11 @@ st.sidebar.markdown(f"""
 """, unsafe_allow_html=True)
 
 if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
-    # Hapus token dari Supabase & cookie remember_token (non-blocking)
     _token_del = st.session_state.get("remember_token", "") or cookies.get("remember_token", "")
     if _token_del:
         try: delete_remember_token(_token_del)
         except: pass
         cookies.pop("remember_token", None)
-    # JANGAN hapus saved_username & saved_password → supaya tetap pre-fill di form login
-    # Bersihkan session state dulu sebelum save cookie agar lebih cepat
     _logout_msg = "Anda telah berhasil logout. Silakan login kembali."
     for key in list(st.session_state.keys()):
         del st.session_state[key]
@@ -810,7 +807,8 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
     st.cache_data.clear()
     st.query_params.clear()
     cookies.save()
-    st.rerun()
+    st.markdown("<meta http-equiv='refresh' content='0'>", unsafe_allow_html=True)
+    st.stop()
 
 # ───────────────────────────────────────────────
 #           UPLOAD DATA
