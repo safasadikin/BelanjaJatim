@@ -262,7 +262,7 @@ def show_auth_page():
         username    = st.text_input("Username", value=saved_username, key="login_username")
         password    = st.text_input("Password", type="password", key="login_password")
         remember_me = st.checkbox(
-            "🔒 Ingat saya selama 30 hari",
+            " Ingat saya",
             value=bool(saved_username),
             help="Login otomatis tanpa perlu memasukkan username & password lagi selama 30 hari."
         )
