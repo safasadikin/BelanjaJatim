@@ -152,10 +152,10 @@ def check_password_strength(password: str) -> dict:
     has_special = bool(re.search(r"[!@#$%^&*()_+\-=\[\]{};':\"\\|,.<>\/?]", password))
     has_min_len = len(password) >= 8
     score = sum([has_upper, has_lower, has_digit, has_special, has_min_len])
-    if score <= 2:   level, color, emoji = "Lemah",       "#e74c3c", "🔴"
-    elif score == 3: level, color, emoji = "Sedang",      "#f39c12", "🟡"
-    elif score == 4: level, color, emoji = "Kuat",        "#27ae60", "🟢"
-    else:            level, color, emoji = "Sangat Kuat", "#1abc9c", "✅"
+    if score <= 2:   level, color, emoji = "Lemah",       "#e74c3c", ""
+    elif score == 3: level, color, emoji = "Sedang",      "#f39c12", ""
+    elif score == 4: level, color, emoji = "Kuat",        "#27ae60", ""
+    else:            level, color, emoji = "Sangat Kuat", "#1abc9c", ""
     return {
         "level": level, "color": color, "emoji": emoji, "score": score,
         "has_upper": has_upper, "has_lower": has_lower, "has_digit": has_digit,
@@ -301,7 +301,7 @@ def show_auth_page():
         username    = st.text_input("Username", value=saved_username, key="login_username")
         password    = st.text_input("Password", type="password", value=saved_password, key="login_password")
         remember_me = st.checkbox(
-            "🔒 Ingat saya selama 30 hari",
+            "Ingat saya selama 30 hari",
             value=bool(saved_username),
             help="Login otomatis tanpa perlu memasukkan username & password lagi selama 30 hari."
         )
@@ -344,8 +344,8 @@ def show_auth_page():
                     .welcome-box p  {{ color:#f0f0f0 !important;font-size:16px !important;text-shadow:1px 1px 4px rgba(0,0,0,0.8) !important; }}
                     </style>
                     <div class="welcome-box">
-                        <h2>✅ Login Berhasil!</h2>
-                        <p>Selamat datang, <b>{nama}</b> 👋<br>Sedang memuat dashboard...</p>
+                        <h2>Login Berhasil!</h2>
+                        <p>Selamat datang, <b>{nama}</b> <br>Sedang memuat dashboard...</p>
                     </div>
                     """, unsafe_allow_html=True)
                     bar = st.progress(0, text="Memuat sistem...")
@@ -378,7 +378,7 @@ def show_auth_page():
             _bar_pct = int(_s["score"] / 5 * 100)
             def _mk_badge(ok, label):
                 bg = "rgba(39,174,96,0.85)" if ok else "rgba(231,76,60,0.85)"
-                mark = "✓" if ok else "✗"
+                mark = "" if ok else ""
                 return f'<span style="background:{bg};color:white;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:700;">{mark} {label}</span>'
             _badges = " ".join([
                 _mk_badge(_s["has_min_len"],  "Min. 8 karakter"),
@@ -399,7 +399,7 @@ def show_auth_page():
             </div>
             """, unsafe_allow_html=True)
             if not _s["is_strong"]:
-                st.warning("⚠️ Password belum cukup kuat!")
+                st.warning("Password belum cukup kuat!")
 
         with st.form(key=f"register_form_{_c}"):
             confirm_password = st.text_input("Konfirmasi Password", type="password", key=f"reg_confirm_{_c}")
@@ -432,7 +432,7 @@ def show_auth_page():
                         "email": email.strip(), "tgl_lahir": str(tgl_lahir), "no_hp": no_hp.strip()
                     })
                     st.session_state["reg_form_counter"] = _c + 1
-                    st.session_state["register_success"] = f"✅ Akun **{new_username}** berhasil dibuat! Silakan login."
+                    st.session_state["register_success"] = f"Akun **{new_username}** berhasil dibuat! Silakan login."
                     st.rerun()
 
     # ── TAB RESET PASSWORD ──
@@ -467,7 +467,7 @@ def show_auth_page():
                     users[reset_username]["password"] = hashed
                     save_user(reset_username, users[reset_username])
                     st.session_state["reset_form_counter"] = _rk + 1
-                    st.session_state["reset_success"] = "**Password berhasil direset!** Silakan login 🎉"
+                    st.session_state["reset_success"] = "**Password berhasil direset!** Silakan login "
                     st.rerun()
 
 
@@ -599,7 +599,7 @@ try:
         logo_b64 = base64.b64encode(f.read()).decode()
     logo_html = f'<img src="data:image/png;base64,{logo_b64}" width="56" style="flex-shrink:0;object-fit:contain;">'
 except FileNotFoundError:
-    logo_html = '<div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;">📊</div>'
+    logo_html = '<div style="width:56px;height:56px;border-radius:10px;background:linear-gradient(135deg,#2563eb,#1e40af);display:flex;align-items:center;justify-content:center;font-size:26px;flex-shrink:0;"></div>'
 
 st.sidebar.markdown(f"""
 <div style="padding:20px 16px 16px;border-bottom:0.5px solid rgba(255,255,255,0.07);display:flex;align-items:center;gap:12px;margin-bottom:8px;">
@@ -823,7 +823,7 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
 
 tipe_data = st.sidebar.radio(
     "Tipe Data", ["Non-BLUD", "BLUD", "Gabungan"],
-    format_func=lambda x: {"Non-BLUD":"🔴  Non-BLUD","BLUD":"🔵  BLUD","Gabungan":"🟢  Gabungan"}[x]
+    format_func=lambda x: {"Non-BLUD":"Non-BLUD","BLUD":"BLUD","Gabungan":"Gabungan"}[x]
 )
 
 if tipe_data == "Non-BLUD":
@@ -873,7 +873,7 @@ st.sidebar.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True):
+if st.sidebar.button("  Keluar", type="secondary", use_container_width=True):
     _token_del = st.session_state.get("remember_token", "") or cookies.get("remember_token", "")
     if _token_del:
         try: delete_remember_token(_token_del)
@@ -897,7 +897,7 @@ if st.sidebar.button("🚪  Keluar", type="secondary", use_container_width=True)
 if "Upload Data" in menu:
     tipe_upload  = "Non-BLUD" if "Non-BLUD" in menu else "BLUD"
     tipe_class   = "non-blud" if tipe_upload == "Non-BLUD" else "blud"
-    tipe_icon    = "🔴" if tipe_upload == "Non-BLUD" else "🔵"
+    tipe_icon    = "" if tipe_upload == "Non-BLUD" else ""
     menu_history = f"History ({tipe_upload})"
     history_dir  = HISTORY_DIR_BLUD if tipe_upload == "BLUD" else HISTORY_DIR_NON_BLUD
 
@@ -912,7 +912,7 @@ if "Upload Data" in menu:
             <span class="current">Upload Data</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;color:#94a3b8;background:#f8fafc;border:0.5px solid #e2e8f0;padding:4px 12px;border-radius:20px;"> {tanggal_now}</span>
+            <span style="font-size:11px;color:#94a3b8;background:#f8fafc;border:0.5px solid #e2e8f0;padding:4px 12px;border-radius:20px;">{tanggal_now}</span>
             <span class="tipe-badge {tipe_class}">{tipe_icon} {tipe_upload}</span>
         </div>
     </div>
@@ -977,7 +977,7 @@ if "Upload Data" in menu:
             if date_match:
                 day, month, year = date_match.groups()
                 tanggal_impor = f"{day}/{month}/{year}"
-                st.success(f"✅ Tanggal terdeteksi: **{tanggal_impor}**")
+                st.success(f"Tanggal terdeteksi: **{tanggal_impor}**")
             else:
                 tanggal_impor = now_wib().strftime("%d/%m/%Y")
                 st.info(f"Tanggal tidak terdeteksi. Menggunakan hari ini: **{tanggal_impor}**")
@@ -1155,7 +1155,7 @@ if "Upload Data" in menu:
             _waktu_upload_sekarang = now_wib()
             st.session_state[f"last_upload_time_{tipe_upload}"] = _waktu_upload_sekarang.strftime("%d/%m/%Y %H:%M:%S")
             save_to_history(df, tipe_upload, tanggal_impor, int(st.session_state["tahun_anggaran"]))
-            st.success(f"✅ Data berhasil diimport & disimpan! {_waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
+            st.success(f"Data berhasil diimport & disimpan! {_waktu_upload_sekarang.strftime('%d/%m/%Y %H:%M:%S')}")
             st.rerun()
 
         except Exception as e:
@@ -1196,7 +1196,7 @@ if "Upload Data" in menu:
         st.markdown("""
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-top:16px;">
             <div style="padding:14px 20px;border-bottom:0.5px solid #f1f5f9;">
-                <span style="font-size:14px;font-weight:600;color:#0d1b2e;">📋 Upload Terbaru</span>
+                <span style="font-size:14px;font-weight:600;color:#0d1b2e;">Upload Terbaru</span>
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -1204,7 +1204,7 @@ if "Upload Data" in menu:
             info=get_file_info(hf); is_last=(hf==history_files[:5][-1])
             st.markdown(f"""
             <div style="background:white;border-left:0.5px solid #e2e8f0;border-right:0.5px solid #e2e8f0;{'border-bottom:0.5px solid #e2e8f0;border-radius:0 0 12px 12px;' if is_last else ''}padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:{'none' if is_last else '0.5px solid #f1f5f9'};">
-                <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">📗</div>
+                <div style="width:32px;height:32px;border-radius:8px;background:#eff6ff;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;"></div>
                 <div style="flex:1;min-width:0;">
                     <div style="color:#0d1b2e;font-weight:500;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{hf.name}</div>
                     <div style="font-size:11px;color:#94a3b8;margin-top:2px;">Data: <b>{info['tanggal_data']}</b> &nbsp;·&nbsp; Upload: <b>{info['upload_time']}</b> &nbsp;·&nbsp; {info['size_kb']} KB</div>
@@ -1386,9 +1386,9 @@ elif "Dashboard (Non-BLUD)" in menu:
         if col in df_csv.columns:
             df_csv[col]=df_csv[col].apply(lambda x: f"{float(x):.2f}%" if str(x).strip() not in ("","nan") else "")
     csv_data=df_csv.to_csv(index=False,sep=";").encode("utf-8-sig")
-    st.download_button("⬇ Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
+    st.download_button("Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
     pdf_bytes=generate_pdf_report(df_sorted,tanggal_non,total_ang,total_real,total_persen,st.session_state["tahun_non_blud"],"non_blud")
-    st.download_button(" Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
+    st.download_button("Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
 
 # ───────────────────────────────────────────────
 #           DASHBOARD BLUD
@@ -1869,7 +1869,7 @@ elif "Dashboard Gabungan" in menu:
 # ───────────────────────────────────────────────
 
 elif "History (Non-BLUD)" in menu:
-    st.title(" History Upload — Non-BLUD")
+    st.title("History Upload — Non-BLUD")
     files=load_history_list("Non-BLUD")
     if not files: st.info("Belum ada history upload Non-BLUD."); st.stop()
 
@@ -1881,21 +1881,21 @@ elif "History (Non-BLUD)" in menu:
     st.markdown(f"""
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #7c3aed;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📦 Ukuran File</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
             <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
         </div>
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #16a34a;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📅 Tahun Anggaran</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
             <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
         </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #2563eb;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📋 Tanggal Data</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
             <div style="font-size:20px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
         </div>
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #d97706;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Waktu Upload</div>
             <div style="font-size:18px;font-weight:700;color:#1d4ed8;">{info['upload_time']}</div>
         </div>
     </div>
@@ -1903,7 +1903,7 @@ elif "History (Non-BLUD)" in menu:
 
     col_csv,col_pdf=st.columns(2)
     with col_csv:
-        st.download_button("⬇ Download CSV",df_hist.to_csv(index=False).encode("utf-8-sig"),f"history_{selected}","text/csv",use_container_width=True)
+        st.download_button("Download CSV",df_hist.to_csv(index=False).encode("utf-8-sig"),f"history_{selected}","text/csv",use_container_width=True)
     with col_pdf:
         dfh=normalize_headers(df_hist.copy())
         dfh=normalize_numeric(dfh,["ANGGARAN","REALISASI","PROSENTASE"])
@@ -1913,9 +1913,9 @@ elif "History (Non-BLUD)" in menu:
         ta_pdf=info["tahun_anggaran"]
         if not str(ta_pdf).isdigit(): ta_pdf=int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist=generate_pdf_report(dfh,info["tanggal_data"],_ta,_tr,(_tr/_ta*100) if _ta>0 else 0,int(ta_pdf),"non_blud")
-        st.download_button(" Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
+        st.download_button("Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
 
-    if st.button(" Hapus File Ini",type="primary",use_container_width=True,key="del_non_final"):
+    if st.button("Hapus File Ini",type="primary",use_container_width=True,key="del_non_final"):
         os.remove(selected_path)
         st.success(f"File `{selected}` berhasil dihapus.")
         st.rerun()
@@ -1925,7 +1925,7 @@ elif "History (Non-BLUD)" in menu:
 # ───────────────────────────────────────────────
 
 elif "History (BLUD)" in menu:
-    st.title(" History Upload — BLUD")
+    st.title("History Upload — BLUD")
     files=load_history_list("BLUD")
     if not files: st.info("Belum ada history upload BLUD."); st.stop()
 
@@ -1937,21 +1937,21 @@ elif "History (BLUD)" in menu:
     st.markdown(f"""
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:8px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #7c3aed;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📦 Ukuran File</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Ukuran File</div>
             <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['size_kb']} KB</div>
         </div>
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #16a34a;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📅 Tahun Anggaran</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tahun Anggaran</div>
             <div style="font-size:22px;font-weight:700;color:#0d1b2e;">{info['tahun_anggaran']}</div>
         </div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:16px;">
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #2563eb;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">📋 Tanggal Data</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Tanggal Data</div>
             <div style="font-size:20px;font-weight:700;color:#0d1b2e;">{info['tanggal_data']}</div>
         </div>
         <div style="background:white;border:0.5px solid #e2e8f0;border-radius:10px;padding:16px 18px;border-top:3px solid #d97706;">
-            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">⏰ Waktu Upload</div>
+            <div style="font-size:10px;color:#94a3b8;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:6px;">Waktu Upload</div>
             <div style="font-size:18px;font-weight:700;color:#16a34a;">{info['upload_time']}</div>
         </div>
     </div>
@@ -1959,7 +1959,7 @@ elif "History (BLUD)" in menu:
 
     col_csv,col_pdf=st.columns(2)
     with col_csv:
-        st.download_button("⬇ Download CSV",df_hist.to_csv(index=False).encode("utf-8-sig"),f"history_{selected}","text/csv",use_container_width=True)
+        st.download_button("Download CSV",df_hist.to_csv(index=False).encode("utf-8-sig"),f"history_{selected}","text/csv",use_container_width=True)
     with col_pdf:
         dfh=normalize_headers(df_hist.copy())
         dfh=normalize_numeric(dfh,["ANGGARAN","REALISASI","SISA KREDIT","PROSENTASE"])
@@ -1969,9 +1969,9 @@ elif "History (BLUD)" in menu:
         ta_pdf=info["tahun_anggaran"]
         if not str(ta_pdf).isdigit(): ta_pdf=int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist=generate_pdf_report(dfh,info["tanggal_data"],_ta,_tr,(_tr/_ta*100) if _ta>0 else 0,int(ta_pdf),"blud")
-        st.download_button(" Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
+        st.download_button("Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
 
-    if st.button(" Hapus File Ini",type="primary",use_container_width=True,key="del_blud_final"):
+    if st.button("Hapus File Ini",type="primary",use_container_width=True,key="del_blud_final"):
         os.remove(selected_path)
         st.success(f"File `{selected}` berhasil dihapus.")
         st.rerun()
