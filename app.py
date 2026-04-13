@@ -1373,7 +1373,25 @@ elif "Dashboard (Non-BLUD)" in menu:
             st.dataframe(df_lap.reset_index(drop=True).style.format(fmt_lap),use_container_width=True,hide_index=True)
 
     st.subheader("Export Data")
-    csv_data=df_sorted.reset_index(drop=True).to_csv(index=False).encode("utf-8-sig")
+    # Buat df untuk CSV: nomor urut ulang, tambahkan baris TOTAL di bawah
+    df_csv = df_sorted.copy()
+    if "No" in df_csv.columns: df_csv = df_csv.drop(columns=["No"])
+    df_csv = df_csv.reset_index(drop=True)
+    df_csv.insert(0, "No", range(1, len(df_csv)+1))
+    _csv_tot_ang  = float(df_csv["ANGGARAN"].sum())  if "ANGGARAN"  in df_csv.columns else 0
+    _csv_tot_real = float(df_csv["REALISASI"].sum()) if "REALISASI" in df_csv.columns else 0
+    _csv_tot_pct  = round(_csv_tot_real/_csv_tot_ang*100,2) if _csv_tot_ang>0 else 0
+    _csv_total_row = {}
+    for _c in df_csv.columns:
+        if _c == "No":                         _csv_total_row[_c] = "TOTAL"
+        elif _c in ["KODE SKPD"]:              _csv_total_row[_c] = "—"
+        elif _c in ["NAMA SKPD","SKPD"]:       _csv_total_row[_c] = "TOTAL KESELURUHAN"
+        elif _c == "ANGGARAN":                 _csv_total_row[_c] = _csv_tot_ang
+        elif _c == "REALISASI":                _csv_total_row[_c] = _csv_tot_real
+        elif _c == "PROSENTASE":               _csv_total_row[_c] = _csv_tot_pct
+        else:                                  _csv_total_row[_c] = "—"
+    df_csv_with_total = pd.concat([df_csv, pd.DataFrame([_csv_total_row])], ignore_index=True)
+    csv_data = df_csv_with_total.to_csv(index=False).encode("utf-8-sig")
     st.download_button("Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
     pdf_bytes=generate_pdf_report(df_sorted,tanggal_non,total_ang,total_real,total_persen,st.session_state["tahun_non_blud"],"non_blud")
     st.download_button("Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
