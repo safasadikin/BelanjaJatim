@@ -1271,21 +1271,25 @@ elif "Dashboard (Non-BLUD)" in menu:
     if "PROSENTASE" in df_view.columns: fmt_map["PROSENTASE"]=pct_fmt
     st.subheader("Tabel Data Non-BLUD")
 
-    # Baris TOTAL
+    # Baris TOTAL — rapikan semua kolom
     _tot_ang  = float(df_view["ANGGARAN"].sum())  if "ANGGARAN"  in df_view.columns else 0
     _tot_real = float(df_view["REALISASI"].sum()) if "REALISASI" in df_view.columns else 0
     _tot_pct  = round(_tot_real/_tot_ang*100,2)   if _tot_ang>0  else 0
-    _total_row = {c:"" for c in df_view.columns}
-    _total_row["No"] = "TOTAL"
-    for _nc in ["NAMA SKPD","SKPD"]:
-        if _nc in df_view.columns: _total_row[_nc]="TOTAL KESELURUHAN"; break
-    if "ANGGARAN"   in df_view.columns: _total_row["ANGGARAN"]   = _tot_ang
-    if "REALISASI"  in df_view.columns: _total_row["REALISASI"]  = _tot_real
-    if "PROSENTASE" in df_view.columns: _total_row["PROSENTASE"] = _tot_pct
+    _total_row = {}
+    for _c in df_view.columns:
+        if _c == "No":                          _total_row[_c] = "TOTAL"
+        elif _c in ["KODE SKPD"]:               _total_row[_c] = "—"
+        elif _c in ["NAMA SKPD","SKPD"]:        _total_row[_c] = "TOTAL KESELURUHAN"
+        elif _c == "ANGGARAN":                  _total_row[_c] = _tot_ang
+        elif _c == "REALISASI":                 _total_row[_c] = _tot_real
+        elif _c == "PROSENTASE":                _total_row[_c] = _tot_pct
+        elif _c in ["TAHUN ANGGARAN"]:          _total_row[_c] = "—"
+        elif _c in ["TANGGAL IMPOR DATA","Tanggal Impor Data","TANGGAL IMPOR DATA"]: _total_row[_c] = "—"
+        else:                                   _total_row[_c] = "—"
     df_with_total = pd.concat([df_view, pd.DataFrame([_total_row])], ignore_index=True)
     def _style_total(row):
         if str(row["No"]) == "TOTAL":
-            return ["background-color:#1e3a5f;color:white;font-weight:700"]*len(row)
+            return ["background-color:#1e3a5f;color:white;font-weight:700;text-align:center"]*len(row)
         return [""]*len(row)
     st.dataframe(df_with_total.style.format(fmt_map).apply(_style_total,axis=1),use_container_width=True,hide_index=True)
 
