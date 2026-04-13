@@ -1391,6 +1391,11 @@ elif "Dashboard (Non-BLUD)" in menu:
         elif _c == "PROSENTASE":               _csv_total_row[_c] = _csv_tot_pct
         else:                                  _csv_total_row[_c] = "—"
     df_csv_with_total = pd.concat([df_csv, pd.DataFrame([_csv_total_row])], ignore_index=True)
+    # Format PROSENTASE jadi string "xx.xx%" agar Excel tidak salah kalikan 100
+    if "PROSENTASE" in df_csv_with_total.columns:
+        df_csv_with_total["PROSENTASE"] = df_csv_with_total["PROSENTASE"].apply(
+            lambda x: f"{float(x):.2f}%" if str(x) not in ["—","","nan"] else x
+        )
     csv_data = df_csv_with_total.to_csv(index=False).encode("utf-8-sig")
     st.download_button("Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
     pdf_bytes=generate_pdf_report(df_sorted,tanggal_non,total_ang,total_real,total_persen,st.session_state["tahun_non_blud"],"non_blud")
