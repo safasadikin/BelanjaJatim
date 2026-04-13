@@ -225,26 +225,35 @@ def show_auth_page():
         .stTabs {{ animation:fadeIn 1.5s ease forwards; }}
         .block-container h2, .block-container h3 {{ font-weight:900 !important; color:white !important; text-shadow:2px 2px 4px rgba(0,0,0,0.9) !important; }}
         .block-container p, .block-container label, .block-container span {{ font-weight:700 !important; color:white !important; text-shadow:1px 1px 3px rgba(0,0,0,0.9) !important; }}
-        .block-container {{ background:transparent !important; padding-top:0 !important; padding-bottom:0 !important; margin-top:0 !important; }}
-        .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; }}
-        .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; }}
-        /* Bungkus seluruh halaman agar vertikal center */
-        .main .block-container {{ min-height:100vh; display:flex !important; flex-direction:column; justify-content:center; }}
-        /* Logo turun sejajar form — pakai margin-top */
-        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; margin-top:80px; }}
-        .login-logo-img {{ width:150px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
-        .login-title {{ font-size:1.8rem !important; font-weight:900 !important; color:white !important;
-            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.6rem !important; line-height:1.3 !important;
+        .block-container {{ background:transparent !important; padding-top:0 !important; padding-bottom:0 !important; margin-top:0 !important; max-width:100% !important; }}
+        /* Geser seluruh konten ke bawah tengah layar */
+        section[data-testid="stMain"] > div {{ padding-top:0 !important; }}
+        .main .block-container {{ padding-top:0 !important; margin-top:0 !important; }}
+        .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
+        .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
+        /* Logo turun pakai padding-top besar */
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:160px; }}
+        .login-logo-img {{ width:160px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        /* Form wrapper — geser ke bawah dan perbesar */
+        .login-form-wrap {{ padding-top:60px; }}
+        .login-title {{ font-size:2rem !important; font-weight:900 !important; color:white !important;
+            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.8rem !important; line-height:1.3 !important;
             text-align:center !important; width:100%; }}
-        @media (max-height: 768px) {{
-            .login-logo-img {{ width:120px; }}
-            .login-logo-wrap {{ margin-top:60px; }}
-            .login-title {{ font-size:1.4rem !important; }}
+        /* Perbesar label input */
+        .stTextInput label, .stCheckbox label {{ font-size:1rem !important; font-weight:700 !important; }}
+        /* Perbesar tombol masuk */
+        .stButton > button {{ font-size:1.1rem !important; padding:12px !important; font-weight:700 !important; }}
+        @media (max-height: 800px) {{
+            .login-logo-wrap {{ padding-top:110px; }}
+            .login-logo-img {{ width:130px; }}
+            .login-form-wrap {{ padding-top:40px; }}
+            .login-title {{ font-size:1.6rem !important; }}
         }}
         @media (max-height: 700px) {{
-            .login-logo-img {{ width:100px; }}
-            .login-logo-wrap {{ margin-top:40px; }}
-            .login-title {{ font-size:1.2rem !important; }}
+            .login-logo-wrap {{ padding-top:70px; }}
+            .login-logo-img {{ width:110px; }}
+            .login-form-wrap {{ padding-top:20px; }}
+            .login-title {{ font-size:1.3rem !important; }}
         }}
         </style>
         """, unsafe_allow_html=True)
@@ -267,7 +276,7 @@ def show_auth_page():
         pass
 
     with col_form:
-        st.markdown('<div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div>', unsafe_allow_html=True)
+        st.markdown('<div class="login-form-wrap"><div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div></div>', unsafe_allow_html=True)
         tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
     # ── TAB LOGIN ──
