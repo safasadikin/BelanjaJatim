@@ -228,14 +228,22 @@ def show_auth_page():
         .block-container {{ background:transparent !important; padding-top:0.8rem !important; padding-bottom:0.5rem !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; }}
-        /* Sembunyikan gap kolom kiri agar logo lebih rapat */
-        [data-testid="column"]:first-child {{ display:flex; align-items:center; justify-content:center; }}
-        .login-logo-img {{ width:170px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        /* Logo kolom kiri rata tengah-bawah sejajar form */
+        [data-testid="column"]:first-child {{ display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px; }}
+        [data-testid="column"]:last-child {{ display:flex; flex-direction:column; align-items:center; justify-content:center; }}
+        .login-logo-img {{ width:150px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         .login-title {{ font-size:1.7rem !important; font-weight:900 !important; color:white !important;
-            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.5rem !important; line-height:1.3 !important; }}
+            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.5rem !important; line-height:1.3 !important;
+            text-align:center !important; width:100%; }}
+        /* Paksa semua elemen form rata tengah */
+        [data-testid="column"]:last-child .stTextInput,
+        [data-testid="column"]:last-child .stCheckbox,
+        [data-testid="column"]:last-child .stButton,
+        [data-testid="column"]:last-child .stTabs,
+        [data-testid="column"]:last-child p {{ width:100% !important; }}
         @media (max-height: 750px) {{
             .block-container {{ padding-top:0.3rem !important; }}
-            .login-logo-img {{ width:130px; }}
+            .login-logo-img {{ width:120px; }}
             .login-title {{ font-size:1.3rem !important; }}
         }}
         </style>
@@ -244,7 +252,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form = st.columns([1, 2.5])
+    col_logo, col_form, col_right = st.columns([1, 2, 1])
 
     try:
         import base64 as _b64
