@@ -1647,7 +1647,64 @@ elif "Dashboard Gabungan" in menu:
         df_view=df_view.reset_index(drop=True); df_view.insert(0,"No",range(1,len(df_view)+1))
         fmt_map={col:rupiah for col in ["ANGGARAN","REALISASI","SISA KREDIT"] if col in df_view.columns}
         if "PROSENTASE" in df_view.columns: fmt_map["PROSENTASE"]=pct_fmt
-        st.dataframe(df_view.style.format(fmt_map),use_container_width=True,hide_index=True)
+
+        # ── Baris TOTAL Gabungan ──
+        _num_cols_gab = ["ANGGARAN","REALISASI","SISA KREDIT"]
+        _ta_gab = float(df_view["ANGGARAN"].sum()) if "ANGGARAN" in df_view.columns else 0
+        _tr_gab = float(df_view["REALISASI"].sum()) if "REALISASI" in df_view.columns else 0
+        _ts_gab = float(df_view["SISA KREDIT"].sum()) if "SISA KREDIT" in df_view.columns else 0
+        _nama_cols_gab = [c for c in ["NAMA SKPD","SKPD"] if c in df_view.columns]
+
+        _tot_gab = {}
+        _label_set_gab = False
+        for _c in df_view.columns:
+            if _c == "No":
+                _tot_gab[_c] = "TOTAL"
+            elif _c == "TIPE":
+                _tot_gab[_c] = "—"
+            elif _c == "KODE SKPD":
+                _tot_gab[_c] = "—"
+            elif _c in _nama_cols_gab:
+                if not _label_set_gab:
+                    _tot_gab[_c] = "TOTAL KESELURUHAN"
+                    _label_set_gab = True
+                else:
+                    _tot_gab[_c] = ""
+            elif _c in _num_cols_gab:
+                _tot_gab[_c] = float(df_view[_c].sum()) if _c in df_view.columns else 0
+            elif _c == "PROSENTASE":
+                _tot_gab[_c] = round(_tr_gab/_ta_gab*100, 2) if _ta_gab > 0 else 0
+            else:
+                _tot_gab[_c] = "—"
+
+        # Konversi semua ke string agar tidak terpotong
+        df_str_gab = df_view.copy().astype(str)
+        for _c, _fn in fmt_map.items():
+            if _c in df_view.columns:
+                df_str_gab[_c] = df_view[_c].apply(lambda x: _fn(x) if str(x).strip() not in ("","nan","—") else str(x))
+
+        _tot_gab_str = {}
+        for _c in df_view.columns:
+            _v = _tot_gab.get(_c, "—")
+            if _c in _num_cols_gab and isinstance(_v, (int, float)):
+                _tot_gab_str[_c] = rupiah(_v)
+            elif _c == "PROSENTASE" and isinstance(_v, (int, float)):
+                _tot_gab_str[_c] = pct_fmt(_v)
+            else:
+                _tot_gab_str[_c] = str(_v)
+
+        df_gab_total = pd.concat([df_str_gab, pd.DataFrame([_tot_gab_str])], ignore_index=True)
+
+        def _style_gab_total(row):
+            if str(row.get("No","")) == "TOTAL":
+                return ["background-color:#1e3a5f;color:white;font-weight:700;border-top:2px solid #4a90d9"] * len(row)
+            return [""] * len(row)
+
+        st.dataframe(
+            df_gab_total.style.apply(_style_gab_total, axis=1),
+            use_container_width=True,
+            hide_index=True
+        )
 
         import plotly.graph_objects as go
 
