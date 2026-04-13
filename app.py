@@ -225,40 +225,42 @@ def show_auth_page():
         .stTabs {{ animation:fadeIn 1.5s ease forwards; }}
         .block-container h2, .block-container h3 {{ font-weight:900 !important; color:white !important; text-shadow:2px 2px 4px rgba(0,0,0,0.9) !important; }}
         .block-container p, .block-container label, .block-container span {{ font-weight:700 !important; color:white !important; text-shadow:1px 1px 3px rgba(0,0,0,0.9) !important; }}
-        .block-container {{ background:transparent !important; padding-top:1rem !important; padding-bottom:0.5rem !important; margin-top:0 !important; }}
+        .block-container {{ background:transparent !important; padding-top:0.8rem !important; padding-bottom:0.5rem !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; }}
-        .login-wrap {{ display:flex; align-items:center; gap:0; min-height:80vh; }}
-        .login-logo-col {{ flex:0 0 220px; display:flex; align-items:center; justify-content:center; padding-right:20px; }}
-        .login-logo-col img {{ width:160px; pointer-events:none; filter:drop-shadow(0 4px 16px rgba(0,0,0,0.4)); }}
-        .login-form-col {{ flex:1; }}
-        .login-title {{ font-size:1.6rem !important; font-weight:900 !important; color:white !important; text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.6rem !important; line-height:1.3 !important; }}
+        /* Sembunyikan gap kolom kiri agar logo lebih rapat */
+        [data-testid="column"]:first-child {{ display:flex; align-items:center; justify-content:center; }}
+        .login-logo-img {{ width:170px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-title {{ font-size:1.7rem !important; font-weight:900 !important; color:white !important;
+            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.5rem !important; line-height:1.3 !important; }}
         @media (max-height: 750px) {{
             .block-container {{ padding-top:0.3rem !important; }}
-            .login-logo-col img {{ width:120px; }}
+            .login-logo-img {{ width:130px; }}
             .login-title {{ font-size:1.3rem !important; }}
-            .login-wrap {{ min-height:70vh; }}
         }}
         </style>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
         pass
 
-    # Layout 2 kolom: logo kiri, form kanan
+    # Layout 2 kolom pakai st.columns: logo kiri, form kanan
+    col_logo, col_form = st.columns([1, 2.5])
+
     try:
         import base64 as _b64
         with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
             _logo_b64 = _b64.b64encode(_f.read()).decode()
-        _logo_tag = '<div class="login-logo-col"><img src="data:image/png;base64,' + _logo_b64 + '" /></div>'
+        with col_logo:
+            st.markdown(
+                '<img class="login-logo-img" src="data:image/png;base64,' + _logo_b64 + '" />',
+                unsafe_allow_html=True
+            )
     except FileNotFoundError:
-        _logo_tag = ""
+        pass
 
-    st.markdown(
-        _logo_tag +
-        '<div class="login-form-col"><div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div>',
-        unsafe_allow_html=True
-    )
-    tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
+    with col_form:
+        st.markdown('<div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div>', unsafe_allow_html=True)
+        tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
     # ── TAB LOGIN ──
     with tab_login:
@@ -443,7 +445,6 @@ def show_auth_page():
                     st.session_state["reset_success"] = "**Password berhasil direset!** Silakan login 🎉"
                     st.rerun()
 
-    st.markdown('</div></div>', unsafe_allow_html=True)
 
 # ───────────────────────────────────────────────
 #           CEK LOGIN
