@@ -233,17 +233,23 @@ def show_auth_page():
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
         .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
-        .login-logo-img {{ width:500px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-img {{ width:260px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
             text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.8rem !important; line-height:1.3 !important;
             text-align:center !important; width:100%; }}
+        /* Perbesar tab Login/Daftar/Lupa */
+        .stTabs [data-baseweb="tab"] {{ font-size:1.15rem !important; font-weight:700 !important; padding:8px 18px !important; }}
         /* Perbesar label & input */
-        .stTextInput label, .stCheckbox label {{ font-size:1.05rem !important; font-weight:700 !important; }}
-        .stTextInput input {{ font-size:1.05rem !important; padding:12px 14px !important; }}
+        .stTextInput label, .stCheckbox label {{ font-size:1.15rem !important; font-weight:700 !important; }}
+        .stTextInput input {{ font-size:1.1rem !important; padding:12px 14px !important; }}
+        /* Perbesar "Masuk ke aplikasi" */
+        .block-container p {{ font-size:1.15rem !important; font-weight:700 !important; }}
         /* Perbesar tombol masuk */
-        .stButton > button {{ font-size:1.15rem !important; padding:14px !important; font-weight:700 !important; }}
+        .stButton > button {{ font-size:1.2rem !important; padding:14px !important; font-weight:700 !important; }}
+        /* Perbesar checkbox */
+        .stCheckbox label {{ font-size:1.1rem !important; }}
         @media (max-height: 800px) {{
             .login-logo-wrap {{ padding-top:150px; }}
             .login-logo-img {{ width:210px; }}
