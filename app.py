@@ -225,26 +225,26 @@ def show_auth_page():
         .stTabs {{ animation:fadeIn 1.5s ease forwards; }}
         .block-container h2, .block-container h3 {{ font-weight:900 !important; color:white !important; text-shadow:2px 2px 4px rgba(0,0,0,0.9) !important; }}
         .block-container p, .block-container label, .block-container span {{ font-weight:700 !important; color:white !important; text-shadow:1px 1px 3px rgba(0,0,0,0.9) !important; }}
-        .block-container {{ background:transparent !important; padding-top:0.8rem !important; padding-bottom:0.5rem !important; margin-top:0 !important; }}
+        .block-container {{ background:transparent !important; padding-top:0 !important; padding-bottom:0 !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; }}
-        /* Logo kolom kiri rata tengah-bawah sejajar form */
-        [data-testid="column"]:first-child {{ display:flex; align-items:flex-end; justify-content:center; padding-bottom:10px; }}
-        [data-testid="column"]:last-child {{ display:flex; flex-direction:column; align-items:center; justify-content:center; }}
+        /* Bungkus seluruh halaman agar vertikal center */
+        .main .block-container {{ min-height:100vh; display:flex !important; flex-direction:column; justify-content:center; }}
+        /* Logo turun sejajar form — pakai margin-top */
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; margin-top:80px; }}
         .login-logo-img {{ width:150px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
-        .login-title {{ font-size:1.7rem !important; font-weight:900 !important; color:white !important;
-            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.5rem !important; line-height:1.3 !important;
+        .login-title {{ font-size:1.8rem !important; font-weight:900 !important; color:white !important;
+            text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.6rem !important; line-height:1.3 !important;
             text-align:center !important; width:100%; }}
-        /* Paksa semua elemen form rata tengah */
-        [data-testid="column"]:last-child .stTextInput,
-        [data-testid="column"]:last-child .stCheckbox,
-        [data-testid="column"]:last-child .stButton,
-        [data-testid="column"]:last-child .stTabs,
-        [data-testid="column"]:last-child p {{ width:100% !important; }}
-        @media (max-height: 750px) {{
-            .block-container {{ padding-top:0.3rem !important; }}
+        @media (max-height: 768px) {{
             .login-logo-img {{ width:120px; }}
-            .login-title {{ font-size:1.3rem !important; }}
+            .login-logo-wrap {{ margin-top:60px; }}
+            .login-title {{ font-size:1.4rem !important; }}
+        }}
+        @media (max-height: 700px) {{
+            .login-logo-img {{ width:100px; }}
+            .login-logo-wrap {{ margin-top:40px; }}
+            .login-title {{ font-size:1.2rem !important; }}
         }}
         </style>
         """, unsafe_allow_html=True)
@@ -260,7 +260,7 @@ def show_auth_page():
             _logo_b64 = _b64.b64encode(_f.read()).decode()
         with col_logo:
             st.markdown(
-                '<img class="login-logo-img" src="data:image/png;base64,' + _logo_b64 + '" />',
+                '<div class="login-logo-wrap"><img class="login-logo-img" src="data:image/png;base64,' + _logo_b64 + '" /></div>',
                 unsafe_allow_html=True
             )
     except FileNotFoundError:
