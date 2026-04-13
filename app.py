@@ -249,19 +249,15 @@ def show_auth_page():
         import base64 as _b64
         with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
             _logo_b64 = _b64.b64encode(_f.read()).decode()
-        logo_html = f'''
-        <div class="login-logo-col">
-            <img src="data:image/png;base64,{_logo_b64}" />
-        </div>'''
+        _logo_tag = '<div class="login-logo-col"><img src="data:image/png;base64,' + _logo_b64 + '" /></div>'
     except FileNotFoundError:
-        logo_html = ""
+        _logo_tag = ""
 
-    st.markdown(f'''
-    <div class="login-wrap">
-        {logo_html}
-        <div class="login-form-col">
-            <div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div>
-    ''', unsafe_allow_html=True)
+    st.markdown(
+        _logo_tag +
+        '<div class="login-form-col"><div class="login-title">Login / Daftar Sistem Realisasi Belanja Jatim</div>',
+        unsafe_allow_html=True
+    )
     tab_login, tab_register, tab_reset = st.tabs(["Login", "Daftar Akun Baru", "Lupa Password"])
 
     # ── TAB LOGIN ──
