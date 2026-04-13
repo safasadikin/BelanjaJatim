@@ -767,9 +767,12 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
     ]))
     elements.append(summary_table); elements.append(Spacer(1,16))
 
-    if is_gabungan or is_blud:
+    if is_gabungan:
         headers    = ["No","Tipe","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
         col_widths = [0.30*inch,0.65*inch,1.55*inch,2.50*inch,1.55*inch,1.55*inch,0.60*inch]
+    elif is_blud:
+        headers    = ["No","Kode SKPD","Nama SKPD","Anggaran","SP2D Gaji","SP2D LS","Rincian GU/TU","Koreksi","Realisasi","%","Sisa Kredit"]
+        col_widths = [0.25*inch,1.25*inch,1.90*inch,1.05*inch,0.85*inch,0.85*inch,0.85*inch,0.75*inch,1.05*inch,0.52*inch,1.05*inch]
     else:
         headers    = ["No","No Asal","Kode SKPD","Nama SKPD","Anggaran","Realisasi","%"]
         col_widths = [0.28*inch,0.32*inch,1.55*inch,1.90*inch,1.45*inch,1.45*inch,0.60*inch]
@@ -789,10 +792,22 @@ def generate_pdf_report(df, tanggal_impor, total_ang, total_real, total_persen, 
         ang_val   = f"Rp {float(row.get('ANGGARAN',0) or 0):,.0f}".replace(",",".")
         real_val  = f"Rp {float(row.get('REALISASI',0) or 0):,.0f}".replace(",",".")
         pct_val   = f"{float(row.get('PROSENTASE',0) or 0):.2f}%"
-        if is_gabungan or is_blud:
+        if is_gabungan:
             row_list = [Paragraph(str(urut),normal_style), Paragraph(str(row.get("TIPE","")),normal_style),
                         Paragraph(kode_skpd,normal_style), Paragraph(skpd_name,normal_style),
                         Paragraph(ang_val,normal_style), Paragraph(real_val,normal_style), Paragraph(pct_val,normal_style)]
+        elif is_blud:
+            sp2d_gaji = f"Rp {float(row.get('SP2D GAJI',0) or 0):,.0f}".replace(",",".")
+            sp2d_ls   = f"Rp {float(row.get('SP2D LS',0) or 0):,.0f}".replace(",",".")
+            gu_tu     = f"Rp {float(row.get('RINCIAN GU/TU',0) or 0):,.0f}".replace(",",".")
+            koreksi   = f"Rp {float(row.get('KOREKSI',0) or 0):,.0f}".replace(",",".")
+            sisa      = f"Rp {float(row.get('SISA KREDIT',0) or 0):,.0f}".replace(",",".")
+            row_list = [Paragraph(str(urut),normal_style),
+                        Paragraph(kode_skpd,normal_style), Paragraph(skpd_name,normal_style),
+                        Paragraph(ang_val,normal_style), Paragraph(sp2d_gaji,normal_style),
+                        Paragraph(sp2d_ls,normal_style), Paragraph(gu_tu,normal_style),
+                        Paragraph(koreksi,normal_style), Paragraph(real_val,normal_style),
+                        Paragraph(pct_val,normal_style), Paragraph(sisa,normal_style)]
         else:
             row_list = [Paragraph(str(urut),normal_style), Paragraph(no_asal,normal_style),
                         Paragraph(kode_skpd,normal_style), Paragraph(skpd_name,normal_style),
