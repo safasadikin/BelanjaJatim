@@ -1601,12 +1601,12 @@ elif "Dashboard Gabungan" in menu:
     tgl=st.session_state.get("tanggal_impor",datetime.now().strftime("%d/%m/%Y"))
     st.caption(f"Data per tanggal: **{tgl}** | Tahun Anggaran: **{st.session_state.get('tahun_anggaran','–')}**")
 
-    ang_all=float(df_non["ANGGARAN"].sum())
+    ang_all=float(df_non["ANGGARAN"].sum())+float(df_blud["ANGGARAN"].sum())
     real_all=float(df_non["REALISASI"].sum())+float(df_blud["REALISASI"].sum())
     pct_all=(real_all/ang_all*100) if ang_all>0 else 0
 
     k1,k2,k3=st.columns(3)
-    k1.metric("Total Anggaran (Non-BLUD)",rupiah(ang_all))
+    k1.metric("Total Anggaran (Non-BLUD + BLUD)",rupiah(ang_all))
     k2.metric("Total Realisasi (Gabungan)",rupiah(real_all))
     k3.metric("% Realisasi Gabungan",f"{pct_all:.2f}%")
 
