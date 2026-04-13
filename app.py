@@ -1604,7 +1604,39 @@ elif "Dashboard (BLUD)" in menu:
                 st.plotly_chart(fig_heat,use_container_width=True)
 
         st.subheader("Export Data")
-        st.download_button("Download CSV",df_sorted.to_csv(index=False).encode("utf-8-sig"),"realisasi_blud.csv","text/csv")
+        # Buat df CSV: nomor urut, KODE SKPD jadi string penuh, tambah baris TOTAL
+        df_csv_blud = df_sorted.copy()
+        if "No" in df_csv_blud.columns: df_csv_blud = df_csv_blud.drop(columns=["No"])
+        df_csv_blud = df_csv_blud.reset_index(drop=True)
+        df_csv_blud.insert(0, "No", range(1, len(df_csv_blud)+1))
+        # Paksa KODE SKPD jadi string agar tidak tampil scientific notation di Excel
+        if "KODE SKPD" in df_csv_blud.columns:
+            df_csv_blud["KODE SKPD"] = df_csv_blud["KODE SKPD"].apply(
+                lambda x: str(int(float(x))) if str(x).replace(".","").replace("E+","").replace("e+","").isdigit() or (str(x).replace(".0","").lstrip("-").isdigit()) else str(x)
+            )
+        # Kolom numerik untuk total
+        _num_cols_csv = ["ANGGARAN","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","REALISASI","SISA KREDIT"]
+        _ta_csv  = float(df_csv_blud["ANGGARAN"].sum())  if "ANGGARAN"  in df_csv_blud.columns else 0
+        _tr_csv  = float(df_csv_blud["REALISASI"].sum()) if "REALISASI" in df_csv_blud.columns else 0
+        _ts_csv  = float(df_csv_blud["SISA KREDIT"].sum()) if "SISA KREDIT" in df_csv_blud.columns else 0
+        _csv_tot_blud = {}
+        for _c in df_csv_blud.columns:
+            if _c == "No":                              _csv_tot_blud[_c] = "TOTAL"
+            elif _c == "KODE SKPD":                    _csv_tot_blud[_c] = "—"
+            elif _c in ["NAMA SKPD","SKPD"]:           _csv_tot_blud[_c] = "TOTAL KESELURUHAN"
+            elif _c in _num_cols_csv:                  _csv_tot_blud[_c] = float(df_csv_blud[_c].sum()) if _c in df_csv_blud.columns else 0
+            elif _c == "PROSENTASE":                   _csv_tot_blud[_c] = f"{round(_tr_csv/_ta_csv*100,2):.2f}%" if _ta_csv>0 else "0.00%"
+            elif _c == "PERSEN SISA":                  _csv_tot_blud[_c] = f"{round(_ts_csv/_ta_csv*100,2):.2f}%" if _ta_csv>0 else "0.00%"
+            else:                                      _csv_tot_blud[_c] = "—"
+        df_csv_blud_total = pd.concat([df_csv_blud, pd.DataFrame([_csv_tot_blud])], ignore_index=True)
+        # Format PROSENTASE & PERSEN SISA jadi string agar Excel tidak salah baca
+        for _pc in ["PROSENTASE","PERSEN SISA"]:
+            if _pc in df_csv_blud_total.columns:
+                df_csv_blud_total[_pc] = df_csv_blud_total[_pc].apply(
+                    lambda x: f"{float(x):.2f}%" if str(x) not in ["—","","nan"] and not str(x).endswith("%") else x
+                )
+        csv_blud_data = df_csv_blud_total.to_csv(index=False).encode("utf-8-sig")
+        st.download_button("Download CSV",csv_blud_data,"realisasi_blud.csv","text/csv")
         pdf_bytes=generate_pdf_report(df_sorted,tanggal_blud,total_ang,total_real,total_persen,st.session_state["tahun_blud"],"blud")
         st.download_button("Download PDF",pdf_bytes,"realisasi_blud.pdf","application/pdf")
 
