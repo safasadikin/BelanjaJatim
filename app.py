@@ -912,7 +912,7 @@ if "Upload Data" in menu:
             <span class="current">Upload Data</span>
         </div>
         <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:11px;color:#94a3b8;background:#f8fafc;border:0.5px solid #e2e8f0;padding:4px 12px;border-radius:20px;">📅 {tanggal_now}</span>
+            <span style="font-size:11px;color:#94a3b8;background:#f8fafc;border:0.5px solid #e2e8f0;padding:4px 12px;border-radius:20px;"> {tanggal_now}</span>
             <span class="tipe-badge {tipe_class}">{tipe_icon} {tipe_upload}</span>
         </div>
     </div>
@@ -943,7 +943,7 @@ if "Upload Data" in menu:
     st.markdown(f"""
     <div class="info-banner">
         <div class="info-banner-left">
-            <div class="info-banner-icon">{'' if tipe_upload=='Non-BLUD' else '🏥'}</div>
+            <div class="info-banner-icon">{'' if tipe_upload=='Non-BLUD' else ''}</div>
             <div>
                 <div class="info-banner-title">Sistem Upload Realisasi Belanja — {tipe_upload}</div>
                 <div class="info-banner-sub">Tahun Anggaran aktif: <b>{tahun_aktif}</b> &nbsp;·&nbsp; File tersimpan: <b>{jumlah_file}</b> &nbsp;·&nbsp; Upload terakhir: <b>{last_short}</b></div>
@@ -956,13 +956,13 @@ if "Upload Data" in menu:
         </div>
     </div>
     <div class="stat-grid">
-        <div class="stat-card blue"><span class="stat-icon">📅</span><div class="stat-label">Tahun Anggaran</div><div class="stat-val">{tahun_aktif}</div><div class="stat-sub">Aktif saat ini</div></div>
-        <div class="stat-card green"><span class="stat-icon">📁</span><div class="stat-label">File Tersimpan</div><div class="stat-val">{jumlah_file}</div><div class="stat-sub">Total di history</div></div>
+        <div class="stat-card blue"><span class="stat-icon"></span><div class="stat-label">Tahun Anggaran</div><div class="stat-val">{tahun_aktif}</div><div class="stat-sub">Aktif saat ini</div></div>
+        <div class="stat-card green"><span class="stat-icon"></span><div class="stat-label">File Tersimpan</div><div class="stat-val">{jumlah_file}</div><div class="stat-sub">Total di history</div></div>
         <div class="stat-card amber"><span class="stat-icon">⏱</span><div class="stat-label">Upload Terakhir</div><div class="stat-val" style="font-size:13px;margin-top:4px;line-height:1.4;">{last_short}</div><div class="stat-sub {last_class}">{last_label}</div></div>
     </div>
     <div class="pro-card">
         <div class="pro-card-header">
-            <span class="pro-card-title">📂 Import File Excel</span>
+            <span class="pro-card-title"> Import File Excel</span>
             <span style="font-size:10px;font-weight:600;padding:3px 10px;border-radius:20px;background:#eff6ff;color:#2563eb;border:0.5px solid #bfdbfe;">Langkah 1 dari 2</span>
         </div>
     </div>
@@ -1388,7 +1388,7 @@ elif "Dashboard (Non-BLUD)" in menu:
     csv_data=df_csv.to_csv(index=False,sep=";").encode("utf-8-sig")
     st.download_button("⬇ Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
     pdf_bytes=generate_pdf_report(df_sorted,tanggal_non,total_ang,total_real,total_persen,st.session_state["tahun_non_blud"],"non_blud")
-    st.download_button("📄 Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
+    st.download_button(" Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
 
 # ───────────────────────────────────────────────
 #           DASHBOARD BLUD
@@ -1869,7 +1869,7 @@ elif "Dashboard Gabungan" in menu:
 # ───────────────────────────────────────────────
 
 elif "History (Non-BLUD)" in menu:
-    st.title("📁 History Upload — Non-BLUD")
+    st.title(" History Upload — Non-BLUD")
     files=load_history_list("Non-BLUD")
     if not files: st.info("Belum ada history upload Non-BLUD."); st.stop()
 
@@ -1913,9 +1913,9 @@ elif "History (Non-BLUD)" in menu:
         ta_pdf=info["tahun_anggaran"]
         if not str(ta_pdf).isdigit(): ta_pdf=int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist=generate_pdf_report(dfh,info["tanggal_data"],_ta,_tr,(_tr/_ta*100) if _ta>0 else 0,int(ta_pdf),"non_blud")
-        st.download_button("📄 Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
+        st.download_button(" Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
 
-    if st.button("🗑️ Hapus File Ini",type="primary",use_container_width=True,key="del_non_final"):
+    if st.button(" Hapus File Ini",type="primary",use_container_width=True,key="del_non_final"):
         os.remove(selected_path)
         st.success(f"File `{selected}` berhasil dihapus.")
         st.rerun()
@@ -1925,7 +1925,7 @@ elif "History (Non-BLUD)" in menu:
 # ───────────────────────────────────────────────
 
 elif "History (BLUD)" in menu:
-    st.title("📁 History Upload — BLUD")
+    st.title(" History Upload — BLUD")
     files=load_history_list("BLUD")
     if not files: st.info("Belum ada history upload BLUD."); st.stop()
 
@@ -1969,9 +1969,9 @@ elif "History (BLUD)" in menu:
         ta_pdf=info["tahun_anggaran"]
         if not str(ta_pdf).isdigit(): ta_pdf=int(st.session_state.get("tahun_anggaran",2026))
         pdf_hist=generate_pdf_report(dfh,info["tanggal_data"],_ta,_tr,(_tr/_ta*100) if _ta>0 else 0,int(ta_pdf),"blud")
-        st.download_button("📄 Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
+        st.download_button(" Download PDF",pdf_hist,f"history_{selected.replace('.csv','.pdf')}","application/pdf",use_container_width=True)
 
-    if st.button("🗑️ Hapus File Ini",type="primary",use_container_width=True,key="del_blud_final"):
+    if st.button(" Hapus File Ini",type="primary",use_container_width=True,key="del_blud_final"):
         os.remove(selected_path)
         st.success(f"File `{selected}` berhasil dihapus.")
         st.rerun()
