@@ -231,29 +231,31 @@ def show_auth_page():
         .main .block-container {{ padding-top:0 !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
-        /* Logo turun pakai padding-top besar */
-        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:160px; }}
-        .login-logo-img {{ width:160px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
-        /* Form wrapper — geser ke bawah dan perbesar */
+        /* Logo turun pakai padding-top */
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
+        .login-logo-img {{ width:200px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
-        .login-title {{ font-size:2rem !important; font-weight:900 !important; color:white !important;
+        .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
             text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.8rem !important; line-height:1.3 !important;
             text-align:center !important; width:100%; }}
-        /* Perbesar label input */
-        .stTextInput label, .stCheckbox label {{ font-size:1rem !important; font-weight:700 !important; }}
+        /* Perbesar label & input */
+        .stTextInput label, .stCheckbox label {{ font-size:1.05rem !important; font-weight:700 !important; }}
+        .stTextInput input {{ font-size:1.05rem !important; padding:12px 14px !important; }}
         /* Perbesar tombol masuk */
-        .stButton > button {{ font-size:1.1rem !important; padding:12px !important; font-weight:700 !important; }}
+        .stButton > button {{ font-size:1.15rem !important; padding:14px !important; font-weight:700 !important; }}
         @media (max-height: 800px) {{
-            .login-logo-wrap {{ padding-top:110px; }}
-            .login-logo-img {{ width:130px; }}
+            .login-logo-wrap {{ padding-top:150px; }}
+            .login-logo-img {{ width:160px; }}
             .login-form-wrap {{ padding-top:40px; }}
-            .login-title {{ font-size:1.6rem !important; }}
+            .login-title {{ font-size:1.7rem !important; }}
         }}
         @media (max-height: 700px) {{
-            .login-logo-wrap {{ padding-top:70px; }}
-            .login-logo-img {{ width:110px; }}
+            .login-logo-wrap {{ padding-top:90px; }}
+            .login-logo-img {{ width:130px; }}
             .login-form-wrap {{ padding-top:20px; }}
-            .login-title {{ font-size:1.3rem !important; }}
+            .login-title {{ font-size:1.4rem !important; }}
+            .stButton > button {{ font-size:1rem !important; padding:10px !important; }}
         }}
         </style>
         """, unsafe_allow_html=True)
@@ -261,7 +263,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form, col_right = st.columns([1, 2, 1])
+    col_logo, col_form, col_right = st.columns([0.8, 2.5, 0.8])
 
     try:
         import base64 as _b64
