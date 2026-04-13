@@ -225,9 +225,17 @@ def show_auth_page():
         .stTabs {{ animation:fadeIn 1.5s ease forwards; }}
         .block-container h2, .block-container h3 {{ font-weight:900 !important; color:white !important; text-shadow:2px 2px 4px rgba(0,0,0,0.9) !important; }}
         .block-container p, .block-container label, .block-container span {{ font-weight:700 !important; color:white !important; text-shadow:1px 1px 3px rgba(0,0,0,0.9) !important; }}
-        .block-container {{ background:transparent !important; padding-top:10rem !important; margin-top:0 !important; }}
+        .block-container {{ background:transparent !important; padding-top:2rem !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; }}
+        @media (max-height: 800px) {{
+            .block-container {{ padding-top:0.5rem !important; }}
+            .block-container h1 {{ font-size:1.4rem !important; margin-bottom:0.2rem !important; }}
+        }}
+        @media (max-height: 700px) {{
+            .block-container {{ padding-top:0.2rem !important; }}
+            .block-container h1 {{ font-size:1.2rem !important; }}
+        }}
         </style>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
@@ -239,8 +247,8 @@ def show_auth_page():
         with open("Logo Provinsi Jawa Timur.png", "rb") as _f:
             _logo_b64 = _b64.b64encode(_f.read()).decode()
         st.markdown(f"""
-        <div style="display:flex;justify-content:center;margin-bottom:-30px;">
-            <img src="data:image/png;base64,{_logo_b64}" style="width:400px;pointer-events:none;" />
+        <div style="display:flex;justify-content:center;margin-bottom:-20px;">
+            <img src="data:image/png;base64,{_logo_b64}" style="width:120px;pointer-events:none;" />
         </div>
         """, unsafe_allow_html=True)
     except FileNotFoundError:
