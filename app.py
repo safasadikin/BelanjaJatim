@@ -1501,45 +1501,39 @@ elif "Dashboard (BLUD)" in menu:
             else:
                 _tot_row_blud[_c] = "—"
 
-        df_blud_total = pd.concat([df_view, pd.DataFrame([_tot_row_blud])], ignore_index=True)
+        # Buat fmt_map khusus untuk baris TOTAL: semua angka diformat rupiah/persen sebagai string
+        # agar tidak terpotong oleh Streamlit saat render
+        _tot_row_display = _tot_row_blud.copy()
+        for _c in _num_cols_blud:
+            if _c in _tot_row_display and isinstance(_tot_row_display[_c], (int, float)):
+                _tot_row_display[_c] = rupiah(_tot_row_display[_c])
+        if "PROSENTASE" in _tot_row_display:
+            _tot_row_display["PROSENTASE"] = pct_fmt(_tot_row_display["PROSENTASE"])
+        if "PERSEN SISA" in _tot_row_display:
+            _tot_row_display["PERSEN SISA"] = pct_fmt(_tot_row_display["PERSEN SISA"])
+
+        # Format semua baris biasa dengan fmt_map, lalu baris TOTAL sudah string (skip format)
+        df_data_fmt = df_view.copy()
+        for _c, _fn in fmt_map.items():
+            if _c in df_data_fmt.columns:
+                df_data_fmt[_c] = df_data_fmt[_c].apply(lambda x: _fn(x) if str(x).strip() not in ("","nan","—") else x)
+
+        df_total_row = pd.DataFrame([_tot_row_display])
+        df_blud_total = pd.concat([df_data_fmt, df_total_row], ignore_index=True)
 
         def _style_blud_total(row):
             if str(row["No"]) == "TOTAL":
                 return [
                     "background-color:#1e3a5f;color:white;font-weight:700;"
-                    "border-top:2px solid #4a90d9;font-size:13px"
+                    "border-top:2px solid #4a90d9"
                 ] * len(row)
             return [""] * len(row)
 
         st.dataframe(
-            df_blud_total.style
-                .format(fmt_map)
-                .apply(_style_blud_total, axis=1),
+            df_blud_total.style.apply(_style_blud_total, axis=1),
             use_container_width=True,
             hide_index=True
         )
-
-        # Ringkasan TOTAL di bawah tabel agar mudah dibaca meski tabel di-scroll
-        st.markdown(f"""
-        <div style="display:flex;flex-wrap:wrap;gap:10px;margin-top:8px;margin-bottom:16px;">
-            <div style="background:#1e3a5f;border-radius:8px;padding:10px 18px;min-width:160px;">
-                <div style="font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Total Anggaran</div>
-                <div style="font-size:15px;font-weight:700;color:white;margin-top:2px;">{rupiah(_ta_tot)}</div>
-            </div>
-            <div style="background:#164e2e;border-radius:8px;padding:10px 18px;min-width:160px;">
-                <div style="font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Total Realisasi</div>
-                <div style="font-size:15px;font-weight:700;color:#4ade80;margin-top:2px;">{rupiah(_tr_tot)}</div>
-            </div>
-            <div style="background:#1e3a5f;border-radius:8px;padding:10px 18px;min-width:130px;">
-                <div style="font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">% Realisasi</div>
-                <div style="font-size:15px;font-weight:700;color:#60a5fa;margin-top:2px;">{round(_tr_tot/_ta_tot*100,2) if _ta_tot>0 else 0:.2f}%</div>
-            </div>
-            <div style="background:#3b1a1a;border-radius:8px;padding:10px 18px;min-width:160px;">
-                <div style="font-size:10px;color:rgba(255,255,255,0.6);font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Total Sisa Kredit</div>
-                <div style="font-size:15px;font-weight:700;color:#f87171;margin-top:2px;">{rupiah(_ts_tot)}</div>
-            </div>
-        </div>
-        """, unsafe_allow_html=True)
 
         st.subheader("Top 10 Persentase Realisasi Tertinggi BLUD")
         df_pct=df.copy()
