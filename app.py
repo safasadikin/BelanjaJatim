@@ -1257,7 +1257,16 @@ elif "Dashboard (Non-BLUD)" in menu:
         with col_s2: sort_order=st.radio("Urutan",["Ascending","Descending"],horizontal=True,key="order_non_unique")
         q=st.text_input("Cari (Nama/Kode SKPD)","",key="search_non_unique")
 
-    df_sorted=df_display.sort_values(by=sort_col,ascending=(sort_order=="Ascending"))
+    # Sort aman
+    try:
+        _num_sort = ["ANGGARAN","REALISASI","PROSENTASE","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PERSEN SISA"]
+        if sort_col in _num_sort:
+            df_display[sort_col] = pd.to_numeric(df_display[sort_col], errors="coerce").fillna(0)
+        else:
+            df_display[sort_col] = df_display[sort_col].astype(str)
+        df_sorted = df_display.sort_values(by=sort_col, ascending=(sort_order=="Ascending"))
+    except Exception:
+        df_sorted = df_display.copy()
     df_view=df_sorted.copy()
     if q.strip():
         cols_s=[c for c in ["KODE SKPD","NAMA SKPD","SKPD"] if c in df_view.columns]
@@ -1453,7 +1462,16 @@ elif "Dashboard (BLUD)" in menu:
             with col_s2: sort_order=st.radio("Urutan",["Ascending","Descending"],horizontal=True,key="order_blud_unique")
             q=st.text_input("Cari (Nama/Kode SKPD)","",key="search_blud_unique")
 
-        df_sorted=df_display.sort_values(by=sort_col,ascending=(sort_order=="Ascending"))
+        # Sort aman
+        try:
+            _num_sort = ["ANGGARAN","REALISASI","PROSENTASE","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT","PERSEN SISA"]
+            if sort_col in _num_sort:
+                df_display[sort_col] = pd.to_numeric(df_display[sort_col], errors="coerce").fillna(0)
+            else:
+                df_display[sort_col] = df_display[sort_col].astype(str)
+            df_sorted = df_display.sort_values(by=sort_col, ascending=(sort_order=="Ascending"))
+        except Exception:
+            df_sorted = df_display.copy()
         df_view=df_sorted.copy()
         if q.strip():
             cols_s=[c for c in ["KODE SKPD","SKPD","NAMA SKPD"] if c in df_view.columns]
@@ -1615,7 +1633,16 @@ elif "Dashboard Gabungan" in menu:
                 mask=pd.Series(False,index=df_view.index)
                 for c in cols_s: mask|=df_view[c].astype(str).str.contains(q,case=False,na=False)
                 df_view=df_view[mask]
-        df_view=df_view.sort_values(by=sort_col,ascending=(sort_order=="Ascending"))
+        # Sort aman: konversi kolom ke tipe yang bisa diurutkan dulu
+        try:
+            _num_sort_cols = ["ANGGARAN","REALISASI","PROSENTASE","SISA KREDIT"]
+            if sort_col in _num_sort_cols:
+                df_view[sort_col] = pd.to_numeric(df_view[sort_col], errors="coerce").fillna(0)
+            else:
+                df_view[sort_col] = df_view[sort_col].astype(str)
+            df_view = df_view.sort_values(by=sort_col, ascending=(sort_order=="Ascending"))
+        except Exception:
+            pass
         if "No" in df_view.columns: df_view=df_view.drop(columns=["No"])
         df_view=df_view.reset_index(drop=True); df_view.insert(0,"No",range(1,len(df_view)+1))
         fmt_map={col:rupiah for col in ["ANGGARAN","REALISASI","SISA KREDIT"] if col in df_view.columns}
@@ -1741,31 +1768,7 @@ elif "Dashboard Gabungan" in menu:
         with col_g2: st.plotly_chart(make_gauge(f"% Realisasi BLUD<br><sub>{rupiah(real_blud)}</sub>",pct_blud,"#636EFA"),use_container_width=True)
         with col_g3: st.plotly_chart(make_gauge(f"% Realisasi Gabungan<br><sub>{rupiah(real_non+real_blud)}</sub>",pct_all,"#00CC96"),use_container_width=True)
 
-        st.markdown("---")
 
-        # ── 5. TREEMAP — font lebih besar, label + % jelas ──
-        st.subheader("Treemap Realisasi per SKPD")
-        df_tm=df_all[df_all["REALISASI"]>0].copy()
-        df_tm["NAMA_SKPD"]=coalesce_name(df_tm).fillna("–").astype(str).str.strip()
-        df_tm["PCT"]=(df_tm["REALISASI"]/df_tm["ANGGARAN"].replace(0,pd.NA)*100).round(1).fillna(0)
-        df_tm["LABEL"]=df_tm["NAMA_SKPD"].str[:28]
-        df_tm["REAL_T"]=df_tm["REALISASI"].apply(lambda x: f"Rp {x/1e9:.1f}M" if x<1e12 else f"Rp {x/1e12:.2f}T")
-        fig_tm=px.treemap(df_tm,path=["TIPE","LABEL"],values="REALISASI",color="PCT",
-                          color_continuous_scale="RdYlGn",color_continuous_midpoint=50,
-                          title="Treemap Realisasi — ukuran=nilai realisasi | warna=% realisasi (merah=rendah, hijau=tinggi)",
-                          height=700,
-                          custom_data=["PCT","REAL_T","NAMA_SKPD"])
-        fig_tm.update_traces(
-            texttemplate="<b>%{label}</b><br>%{customdata[0]:.1f}%<br>%{customdata[1]}",
-            textfont=dict(size=13,color="white"),
-            hovertemplate="<b>%{customdata[2]}</b><br>% Realisasi: %{customdata[0]:.1f}%<br>Realisasi: %{customdata[1]}<extra></extra>",
-            marker=dict(line=dict(width=1.5,color="#0e1117")))
-        fig_tm.update_layout(
-            plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",
-            font=dict(color="#e0e0e0",size=13),
-            margin=dict(l=10,r=10,t=60,b=10),
-            coloraxis_colorbar=dict(title=dict(text="% Realisasi",font=dict(color="#e0e0e0")),tickfont=dict(color="#e0e0e0")))
-        st.plotly_chart(fig_tm,use_container_width=True)
 
     st.subheader("Export Gabungan")
     st.download_button("Download CSV Gabungan",df_all.to_csv(index=False).encode("utf-8-sig"),"realisasi_gabungan.csv","text/csv")
