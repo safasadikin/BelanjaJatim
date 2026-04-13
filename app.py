@@ -1466,7 +1466,30 @@ elif "Dashboard (BLUD)" in menu:
         fmt_map={col:rupiah for col in ["ANGGARAN","REALISASI","SISA KREDIT","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI"] if col in df_view.columns}
         fmt_map.update({col:pct_fmt for col in ["PROSENTASE","PERSEN SISA"] if col in df_view.columns})
         st.subheader("Tabel Data BLUD")
-        st.dataframe(df_view.style.format(fmt_map),use_container_width=True,hide_index=True)
+
+        # Baris TOTAL BLUD
+        _num_cols_blud = ["ANGGARAN","REALISASI","SISA KREDIT","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI"]
+        _tot_row_blud = {}
+        for _c in df_view.columns:
+            if _c == "No":                              _tot_row_blud[_c] = "TOTAL"
+            elif _c == "KODE SKPD":                    _tot_row_blud[_c] = "—"
+            elif _c in ["NAMA SKPD","SKPD"]:           _tot_row_blud[_c] = "TOTAL KESELURUHAN"
+            elif _c in _num_cols_blud:                 _tot_row_blud[_c] = float(df_view[_c].sum()) if _c in df_view.columns else 0
+            elif _c == "PROSENTASE":
+                _ta = float(df_view["ANGGARAN"].sum()) if "ANGGARAN" in df_view.columns else 0
+                _tr = float(df_view["REALISASI"].sum()) if "REALISASI" in df_view.columns else 0
+                _tot_row_blud[_c] = round(_tr/_ta*100,2) if _ta>0 else 0
+            elif _c == "PERSEN SISA":
+                _ta = float(df_view["ANGGARAN"].sum()) if "ANGGARAN" in df_view.columns else 0
+                _ts = float(df_view["SISA KREDIT"].sum()) if "SISA KREDIT" in df_view.columns else 0
+                _tot_row_blud[_c] = round(_ts/_ta*100,2) if _ta>0 else 0
+            else:                                      _tot_row_blud[_c] = "—"
+        df_blud_total = pd.concat([df_view, pd.DataFrame([_tot_row_blud])], ignore_index=True)
+        def _style_blud_total(row):
+            if str(row["No"]) == "TOTAL":
+                return ["background-color:#1e3a5f;color:white;font-weight:700"]*len(row)
+            return [""]*len(row)
+        st.dataframe(df_blud_total.style.format(fmt_map).apply(_style_blud_total,axis=1),use_container_width=True,hide_index=True)
 
         st.subheader("Top 10 Persentase Realisasi Tertinggi BLUD")
         df_pct=df.copy()
