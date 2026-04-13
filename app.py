@@ -1764,7 +1764,7 @@ elif "Dashboard Gabungan" in menu:
             plot_bgcolor="#0e1117",paper_bgcolor="#0e1117",
             font=dict(color="#e0e0e0",size=13),
             margin=dict(l=10,r=10,t=60,b=10),
-            coloraxis_colorbar=dict(title="% Realisasi",tickfont=dict(color="#e0e0e0"),titlefont=dict(color="#e0e0e0")))
+            coloraxis_colorbar=dict(title=dict(text="% Realisasi",font=dict(color="#e0e0e0")),tickfont=dict(color="#e0e0e0")))
         st.plotly_chart(fig_tm,use_container_width=True)
 
     st.subheader("Export Gabungan")
