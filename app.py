@@ -1501,39 +1501,49 @@ elif "Dashboard (BLUD)" in menu:
             else:
                 _tot_row_blud[_c] = "—"
 
-        # Buat fmt_map khusus untuk baris TOTAL: semua angka diformat rupiah/persen sebagai string
-        # agar tidak terpotong oleh Streamlit saat render
-        _tot_row_display = _tot_row_blud.copy()
-        for _c in _num_cols_blud:
-            if _c in _tot_row_display and isinstance(_tot_row_display[_c], (int, float)):
-                _tot_row_display[_c] = rupiah(_tot_row_display[_c])
-        if "PROSENTASE" in _tot_row_display:
-            _tot_row_display["PROSENTASE"] = pct_fmt(_tot_row_display["PROSENTASE"])
-        if "PERSEN SISA" in _tot_row_display:
-            _tot_row_display["PERSEN SISA"] = pct_fmt(_tot_row_display["PERSEN SISA"])
-
-        # Format semua baris biasa dengan fmt_map, lalu baris TOTAL sudah string (skip format)
-        df_data_fmt = df_view.copy()
-        for _c, _fn in fmt_map.items():
-            if _c in df_data_fmt.columns:
-                df_data_fmt[_c] = df_data_fmt[_c].apply(lambda x: _fn(x) if str(x).strip() not in ("","nan","—") else x)
-
-        df_total_row = pd.DataFrame([_tot_row_display])
-        df_blud_total = pd.concat([df_data_fmt, df_total_row], ignore_index=True)
-
-        def _style_blud_total(row):
-            if str(row["No"]) == "TOTAL":
-                return [
-                    "background-color:#1e3a5f;color:white;font-weight:700;"
-                    "border-top:2px solid #4a90d9"
-                ] * len(row)
-            return [""] * len(row)
-
+        # Tampilkan tabel data (tanpa baris TOTAL — ditaruh di HTML bawah)
         st.dataframe(
-            df_blud_total.style.apply(_style_blud_total, axis=1),
+            df_view.style.format(fmt_map),
             use_container_width=True,
             hide_index=True
         )
+
+        # Baris TOTAL ditampilkan sebagai HTML agar pasti muncul semua tanpa terpotong
+        _cols_order = list(df_view.columns)
+        _col_headers = "".join([
+            f'<th style="background:#0d2a4a;color:rgba(255,255,255,0.55);font-size:11px;'
+            f'font-weight:600;padding:6px 10px;text-align:{"right" if c in _num_cols_blud+["PROSENTASE","PERSEN SISA"] else "left"};'
+            f'white-space:nowrap;">{c}</th>'
+            for c in _cols_order
+        ])
+
+        def _fmt_total_cell(col, val):
+            if col in _num_cols_blud and isinstance(val, (int, float)):
+                return rupiah(val)
+            elif col == "PROSENTASE" and isinstance(val, (int, float)):
+                return pct_fmt(val)
+            elif col == "PERSEN SISA" and isinstance(val, (int, float)):
+                return pct_fmt(val)
+            return str(val)
+
+        _col_cells = "".join([
+            f'<td style="padding:8px 10px;text-align:{"right" if c in _num_cols_blud+["PROSENTASE","PERSEN SISA"] else "left"};'
+            f'white-space:nowrap;font-size:13px;">{_fmt_total_cell(c, _tot_row_blud.get(c,"—"))}</td>'
+            for c in _cols_order
+        ])
+
+        st.markdown(f"""
+        <div style="overflow-x:auto;margin-top:-8px;border-radius:0 0 8px 8px;border:1px solid #2a4a7f;border-top:none;">
+            <table style="width:100%;border-collapse:collapse;background:#1e3a5f;">
+                <thead><tr>{_col_headers}</tr></thead>
+                <tbody>
+                    <tr style="color:white;font-weight:700;border-top:2px solid #4a90d9;">
+                        {_col_cells}
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        """, unsafe_allow_html=True)
 
         st.subheader("Top 10 Persentase Realisasi Tertinggi BLUD")
         df_pct=df.copy()
