@@ -1373,19 +1373,7 @@ elif "Dashboard (Non-BLUD)" in menu:
             st.dataframe(df_lap.reset_index(drop=True).style.format(fmt_lap),use_container_width=True,hide_index=True)
 
     st.subheader("Export Data")
-    df_csv=df_sorted.reset_index(drop=True).copy()
-    if "TANGGAL IMPOR DATA" in df_csv.columns and "Tanggal Impor Data" in df_csv.columns:
-        df_csv=df_csv.drop(columns=["Tanggal Impor Data"])
-    no_asal=df_csv["No"].tolist() if "No" in df_csv.columns else list(range(1,len(df_csv)+1))
-    df_csv=df_csv.drop(columns=["No"],errors="ignore")
-    df_csv.insert(0,"No Asal",no_asal); df_csv.insert(0,"No",range(1,len(df_csv)+1))
-    for col in ["ANGGARAN","REALISASI","SP2D GAJI","SP2D LS","RINCIAN GU/TU","KOREKSI","SISA KREDIT"]:
-        if col in df_csv.columns:
-            df_csv[col]=df_csv[col].apply(lambda x: f"{float(x):,.0f}".replace(",",".") if str(x).strip() not in ("","nan") else "")
-    for col in ["PROSENTASE","PERSEN SISA"]:
-        if col in df_csv.columns:
-            df_csv[col]=df_csv[col].apply(lambda x: f"{float(x):.2f}%" if str(x).strip() not in ("","nan") else "")
-    csv_data=df_csv.to_csv(index=False,sep=";").encode("utf-8-sig")
+    csv_data=df_sorted.reset_index(drop=True).to_csv(index=False).encode("utf-8-sig")
     st.download_button("Download CSV",csv_data,"realisasi_non_blud.csv","text/csv")
     pdf_bytes=generate_pdf_report(df_sorted,tanggal_non,total_ang,total_real,total_persen,st.session_state["tahun_non_blud"],"non_blud")
     st.download_button("Download PDF",pdf_bytes,"realisasi_non_blud.pdf","application/pdf")
