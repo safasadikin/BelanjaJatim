@@ -233,7 +233,7 @@ def show_auth_page():
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
         .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
-        .login-logo-img {{ width:500px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-img {{ width:260px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
@@ -1270,7 +1270,24 @@ elif "Dashboard (Non-BLUD)" in menu:
     fmt_map={col:rupiah for col in ["ANGGARAN","REALISASI"] if col in df_view.columns}
     if "PROSENTASE" in df_view.columns: fmt_map["PROSENTASE"]=pct_fmt
     st.subheader("Tabel Data Non-BLUD")
-    st.dataframe(df_view.style.format(fmt_map),use_container_width=True,hide_index=True)
+
+    # Baris TOTAL
+    _tot_ang  = float(df_view["ANGGARAN"].sum())  if "ANGGARAN"  in df_view.columns else 0
+    _tot_real = float(df_view["REALISASI"].sum()) if "REALISASI" in df_view.columns else 0
+    _tot_pct  = round(_tot_real/_tot_ang*100,2)   if _tot_ang>0  else 0
+    _total_row = {c:"" for c in df_view.columns}
+    _total_row["No"] = "TOTAL"
+    for _nc in ["NAMA SKPD","SKPD"]:
+        if _nc in df_view.columns: _total_row[_nc]="TOTAL KESELURUHAN"; break
+    if "ANGGARAN"   in df_view.columns: _total_row["ANGGARAN"]   = _tot_ang
+    if "REALISASI"  in df_view.columns: _total_row["REALISASI"]  = _tot_real
+    if "PROSENTASE" in df_view.columns: _total_row["PROSENTASE"] = _tot_pct
+    df_with_total = pd.concat([df_view, pd.DataFrame([_total_row])], ignore_index=True)
+    def _style_total(row):
+        if str(row["No"]) == "TOTAL":
+            return ["background-color:#1e3a5f;color:white;font-weight:700"]*len(row)
+        return [""]*len(row)
+    st.dataframe(df_with_total.style.format(fmt_map).apply(_style_total,axis=1),use_container_width=True,hide_index=True)
 
     st.subheader("Top 10 Persentase Realisasi Tertinggi Non-BLUD")
     df_pct=df.copy()
