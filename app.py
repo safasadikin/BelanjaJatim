@@ -73,8 +73,41 @@ div[style*="position:fixed"][style*="bottom"][style*="right"] {
     opacity:0 !important;
     pointer-events:none !important;
 }
+
+/* Floating logo Jawa Timur pojok kanan bawah */
+#jatim-floating-logo {
+    position: fixed;
+    bottom: 16px;
+    right: 16px;
+    width: 52px;
+    height: 52px;
+    z-index: 9999;
+    opacity: 0.85;
+    transition: opacity 0.2s ease;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 6px rgba(0,0,0,0.25));
+}
+#jatim-floating-logo:hover {
+    opacity: 1.0;
+}
 </style>
 """
+
+# ───────────────────────────────────────────────
+#           FLOATING LOGO JAWA TIMUR
+# ───────────────────────────────────────────────
+
+def inject_floating_logo():
+    import base64
+    try:
+        with open("Logo Provinsi Jawa Timur.png", "rb") as f:
+            logo_b64 = base64.b64encode(f.read()).decode()
+        st.markdown(
+            f'<img id="jatim-floating-logo" src="data:image/png;base64,{logo_b64}" />',
+            unsafe_allow_html=True
+        )
+    except FileNotFoundError:
+        pass
 
 # ───────────────────────────────────────────────
 #           TOKEN MANAGER – INGAT SAYA
@@ -485,6 +518,7 @@ if not st.session_state["logged_in"]:
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
 st.markdown(HIDE_BADGE_CSS, unsafe_allow_html=True)
+inject_floating_logo()
 
 st.markdown("""
 <style>
