@@ -236,7 +236,7 @@ def save_user(username, data):
 # ───────────────────────────────────────────────
 
 def show_auth_page():
-    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
+    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered", page_icon="Logo Provinsi Jawa Timur.png")
     st.markdown(HIDE_BADGE_CSS, unsafe_allow_html=True)
 
     import base64
@@ -516,7 +516,7 @@ if not st.session_state["logged_in"]:
 #           APLIKASI UTAMA
 # ───────────────────────────────────────────────
 
-st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide")
+st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide", page_icon="Logo Provinsi Jawa Timur.png")
 st.markdown(HIDE_BADGE_CSS, unsafe_allow_html=True)
 inject_floating_logo()
 
