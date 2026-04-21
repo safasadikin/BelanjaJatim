@@ -2067,3 +2067,4 @@ elif "History (BLUD)" in menu:
         os.remove(selected_path)
         st.success(f"File `{selected}` berhasil dihapus.")
         st.rerun()
+# v2.1
