@@ -77,48 +77,6 @@ div[style*="position:fixed"][style*="bottom"][style*="right"] {
 """
 
 # ───────────────────────────────────────────────
-#           FLOATING LOGO & HIDE BANNER
-# ───────────────────────────────────────────────
-
-def inject_floating_logo():
-    import base64
-    try:
-        with open("Logo Provinsi Jawa Timur.png", "rb") as f:
-            logo_b64 = base64.b64encode(f.read()).decode()
-        st.markdown(
-            f'<img id="jatim-floating-logo" src="data:image/png;base64,{logo_b64}" />',
-            unsafe_allow_html=True
-        )
-    except FileNotFoundError:
-        pass
-    st.markdown("""
-    <script>
-    function hideStreamlitBadge() {
-        const selectors = [
-            '[data-testid="stBottom"]',
-            '.st-emotion-cache-h5rgaw',
-            '.st-emotion-cache-1dp5vir',
-            '.viewerBadge_container__r5tak',
-            '.viewerBadge_link__qRIco',
-            'a[href*="streamlit.io"]',
-            'div[class*="hostBadge"]',
-            'div[class*="HostedWith"]',
-            'div[class*="streamlitAppFooter"]',
-        ];
-        selectors.forEach(sel => {
-            document.querySelectorAll(sel).forEach(el => {
-                el.style.setProperty('display', 'none', 'important');
-                el.style.setProperty('visibility', 'hidden', 'important');
-                el.style.setProperty('opacity', '0', 'important');
-            });
-        });
-    }
-    hideStreamlitBadge();
-    setInterval(hideStreamlitBadge, 500);
-    </script>
-    """, unsafe_allow_html=True)
-
-# ───────────────────────────────────────────────
 #           TOKEN MANAGER – INGAT SAYA
 # ───────────────────────────────────────────────
 
@@ -245,7 +203,7 @@ def save_user(username, data):
 # ───────────────────────────────────────────────
 
 def show_auth_page():
-    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered")
+    st.set_page_config(page_title="Login - Realisasi Belanja Jatim", layout="centered", page_icon="Logo Provinsi Jawa Timur.png")
     st.markdown(HIDE_BADGE_CSS, unsafe_allow_html=True)
 
     import base64
@@ -527,7 +485,6 @@ if not st.session_state["logged_in"]:
 
 st.set_page_config(page_title="Realisasi Belanja Jatim", layout="wide", page_icon="Logo Provinsi Jawa Timur.png")
 st.markdown(HIDE_BADGE_CSS, unsafe_allow_html=True)
-inject_floating_logo()
 
 st.markdown("""
 <style>
