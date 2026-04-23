@@ -74,80 +74,50 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 HIDE_BADGE_CSS = """
 <style>
-[data-testid="stStatusWidget"]               { display:none !important; }
-div[data-testid="stStatusWidget"]            { display:none !important; }
-[data-testid="stToolbar"]                    { display:none !important; }
-[data-testid="stDecoration"]                 { display:none !important; }
-[data-testid="stToolbarActions"]             { display:none !important; }
-#MainMenu                                    { display:none !important; }
-footer                                       { display:none !important; }
-.stDeployButton                              { display:none !important; }
-[data-testid="stDeployButton"]               { display:none !important; }
-[class*="viewerBadge"]                       { display:none !important; }
-[class*="StatusWidget"]                      { display:none !important; }
-[class*="toolbarActions"]                    { display:none !important; }
-[class*="_profileContainer"]                 { display:none !important; }
-[class*="_profilePreview"]                   { display:none !important; }
-button[title="View fullscreen"]              { display:none !important; }
-button[data-testid="StyledFullScreenButton"] { display:none !important; }
-header[data-testid="stHeader"]               { background:transparent !important; border:none !important; }
-[data-testid="stHeader"] > *                { display:none !important; }
+[data-testid="stStatusWidget"]              { display:none !important; }
+div[data-testid="stStatusWidget"]           { display:none !important; }
+[data-testid="stToolbar"]                   { display:none !important; }
+[data-testid="stDecoration"]                { display:none !important; }
+[data-testid="stToolbarActions"]            { display:none !important; }
+#MainMenu                                   { display:none !important; }
+footer                                      { display:none !important; }
+.stDeployButton                             { display:none !important; }
+[data-testid="stDeployButton"]              { display:none !important; }
+[class*="viewerBadge"]                      { display:none !important; }
+[class*="StatusWidget"]                     { display:none !important; }
+[class*="toolbarActions"]                   { display:none !important; }
+[class*="_profileContainer"]                { display:none !important; }
+[class*="_profilePreview"]                  { display:none !important; }
+button[title="View fullscreen"]             { display:none !important; }
+button[data-testid="StyledFullScreenButton"]{ display:none !important; }
+header[data-testid="stHeader"]              { background:transparent !important; border:none !important; }
+[data-testid="stHeader"] > *               { display:none !important; }
 div[style*="position: fixed"][style*="bottom"][style*="right"],
 div[style*="position:fixed"][style*="bottom"][style*="right"] {
     display:none !important;
     opacity:0 !important;
     pointer-events:none !important;
 }
-[data-testid="stActionButtonIcon"]           { display:none !important; }
-iframe[title="streamlit_cookies_manager"]    { display:none !important; }
-div[class*="badge"]                          { display:none !important; }
-a[href*="streamlit.io"]                      { display:none !important; }
-div[data-testid="stBottom"]                  { display:none !important; }
-#stDecoration                                { display:none !important; }
-.st-emotion-cache-1dp5vir                    { display:none !important; }
-.st-emotion-cache-h4xjcd                     { display:none !important; }
-
-/* ── TAMBAHAN BARU ── */
-.st-emotion-cache-zq5wmm                    { display:none !important; }
-.st-emotion-cache-1wbqy5l                   { display:none !important; }
-.st-emotion-cache-13ejsyy                   { display:none !important; }
-.st-emotion-cache-1p1nwyz                   { display:none !important; }
-[data-testid="collapsedControl"]            { display:none !important; }
-section[data-testid="stSidebarCollapsedControl"] { display:none !important; }
-div[class*="viewerBadge_container"]         { display:none !important; }
-div[class*="badge_container"]               { display:none !important; }
-#badges                                     { display:none !important; }
-.viewerBadge_container__r5tak               { display:none !important; }
-span[class*="viewerBadge"]                  { display:none !important; }
-a[class*="viewerBadge"]                     { display:none !important; }
-img[class*="viewerBadge"]                   { display:none !important; }
-
-/* Sembunyikan semua elemen fixed di pojok bawah */
-div[style*="position: fixed"][style*="bottom"],
-div[style*="position:fixed"][style*="bottom"] {
-    display:none !important;
-    opacity:0 !important;
-    visibility:hidden !important;
-    pointer-events:none !important;
-}
+[data-testid="stActionButtonIcon"]          { display:none !important; }
+iframe[title="streamlit_cookies_manager"]   { display:none !important; }
+div[class*="badge"]                         { display:none !important; }
+a[href*="streamlit.io"]                     { display:none !important; }
+div[data-testid="stBottom"]                 { display:none !important; }
+#stDecoration                               { display:none !important; }
+.st-emotion-cache-1dp5vir                   { display:none !important; }
+.st-emotion-cache-h4xjcd                    { display:none !important; }
 </style>
 <script>
 function removeBadges() {
+    // Hapus semua elemen di pojok kanan bawah
     const selectors = [
         '[data-testid="stStatusWidget"]',
         '[class*="viewerBadge"]',
         '[class*="StatusWidget"]',
-        '[class*="badge_container"]',
-        '[class*="viewerBadge_container"]',
         'a[href*="streamlit.io"]',
         'a[href*="share.streamlit"]',
         '.st-emotion-cache-1dp5vir',
         '.st-emotion-cache-h4xjcd',
-        '.st-emotion-cache-zq5wmm',
-        '.st-emotion-cache-1wbqy5l',
-        '.st-emotion-cache-13ejsyy',
-        '.st-emotion-cache-1p1nwyz',
-        '#badges',
     ];
     selectors.forEach(sel => {
         document.querySelectorAll(sel).forEach(el => {
@@ -158,25 +128,25 @@ function removeBadges() {
         });
     });
 
-    /* Hapus semua elemen fixed di pojok bawah */
+    // Hapus elemen fixed di pojok kanan bawah
     document.querySelectorAll('*').forEach(el => {
         const style = window.getComputedStyle(el);
-        if (style.position === 'fixed' && parseInt(style.bottom) < 80) {
+        if (
+            style.position === 'fixed' &&
+            (style.bottom === '0px' || parseInt(style.bottom) < 60) &&
+            (style.right === '0px' || parseInt(style.right) < 60)
+        ) {
             const tag = el.tagName.toLowerCase();
             if (tag !== 'body' && tag !== 'html') {
-                const rect = el.getBoundingClientRect();
-                if (rect.width < 200 && rect.height < 100) {
-                    el.style.display = 'none';
-                    el.style.opacity = '0';
-                    el.style.visibility = 'hidden';
-                }
+                el.style.display = 'none';
             }
         }
     });
 }
 
+// Jalankan sekarang dan setiap 1 detik
 removeBadges();
-setInterval(removeBadges, 500);
+setInterval(removeBadges, 1000);
 </script>
 """
 
@@ -336,8 +306,8 @@ def show_auth_page():
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
-        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:180px; }}
-        .login-logo-img {{ width:280px; height:auto; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
+        .login-logo-img {{ width:1000px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
@@ -356,13 +326,13 @@ def show_auth_page():
         .stCheckbox label {{ font-size:1.1rem !important; }}
         @media (max-height: 800px) {{
             .login-logo-wrap {{ padding-top:150px; }}
-            .login-logo-img {{ width:180px !important; height:auto !important; }}
+            .login-logo-img {{ width:210px; }}
             .login-form-wrap {{ padding-top:40px; }}
             .login-title {{ font-size:1.7rem !important; }}
         }}
         @media (max-height: 700px) {{
             .login-logo-wrap {{ padding-top:90px; }}
-            .login-logo-img {{ width:160px !important; height:auto !important; }}
+            .login-logo-img {{ width:170px; }}
             .login-form-wrap {{ padding-top:20px; }}
             .login-title {{ font-size:1.4rem !important; }}
             .stButton > button {{ font-size:1rem !important; padding:10px !important; }}
@@ -373,7 +343,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form, col_right = st.columns([1.5, 2.5, 0.2])
+    col_logo, col_form, col_right = st.columns([0.8, 2.5, 0.8])
 
     try:
         import base64 as _b64
