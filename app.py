@@ -6,12 +6,32 @@ import re
 import os
 import bcrypt
 import secrets
+import threading
+import requests
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 WIB = timezone(timedelta(hours=7))
 def now_wib() -> datetime:
     return datetime.now(WIB).replace(tzinfo=None)
+
+# ───────────────────────────────────────────────
+#           KEEP ALIVE - ANTI SLEEP
+# ───────────────────────────────────────────────
+def _keep_alive():
+    import time
+    url = "https://realisasibelanjajatim.streamlit.app/"
+    while True:
+        try:
+            requests.get(url, timeout=10)
+        except Exception:
+            pass
+        time.sleep(300)  # ping setiap 5 menit
+
+if "keep_alive_started" not in st.session_state:
+    st.session_state["keep_alive_started"] = True
+    _t = threading.Thread(target=_keep_alive, daemon=True)
+    _t.start()
 
 from PIL import Image
 from reportlab.lib.pagesizes import A4, landscape
@@ -39,8 +59,13 @@ if not cookies.ready():
 #           SUPABASE CLIENT
 # ───────────────────────────────────────────────
 
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+import os
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+except Exception:
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ───────────────────────────────────────────────
@@ -73,7 +98,56 @@ div[style*="position:fixed"][style*="bottom"][style*="right"] {
     opacity:0 !important;
     pointer-events:none !important;
 }
+[data-testid="stActionButtonIcon"]          { display:none !important; }
+iframe[title="streamlit_cookies_manager"]   { display:none !important; }
+div[class*="badge"]                         { display:none !important; }
+a[href*="streamlit.io"]                     { display:none !important; }
+div[data-testid="stBottom"]                 { display:none !important; }
+#stDecoration                               { display:none !important; }
+.st-emotion-cache-1dp5vir                   { display:none !important; }
+.st-emotion-cache-h4xjcd                    { display:none !important; }
 </style>
+<script>
+function removeBadges() {
+    // Hapus semua elemen di pojok kanan bawah
+    const selectors = [
+        '[data-testid="stStatusWidget"]',
+        '[class*="viewerBadge"]',
+        '[class*="StatusWidget"]',
+        'a[href*="streamlit.io"]',
+        'a[href*="share.streamlit"]',
+        '.st-emotion-cache-1dp5vir',
+        '.st-emotion-cache-h4xjcd',
+    ];
+    selectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+        });
+    });
+
+    // Hapus elemen fixed di pojok kanan bawah
+    document.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        if (
+            style.position === 'fixed' &&
+            (style.bottom === '0px' || parseInt(style.bottom) < 60) &&
+            (style.right === '0px' || parseInt(style.right) < 60)
+        ) {
+            const tag = el.tagName.toLowerCase();
+            if (tag !== 'body' && tag !== 'html') {
+                el.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Jalankan sekarang dan setiap 1 detik
+removeBadges();
+setInterval(removeBadges, 1000);
+</script>
 """
 
 # ───────────────────────────────────────────────
@@ -232,8 +306,8 @@ def show_auth_page():
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
-        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
-        .login-logo-img {{ width:1000px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:300px; }}
+        .login-logo-img {{ width:180px; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
