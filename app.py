@@ -93,7 +93,6 @@ div[style*="position:fixed"][style*="bottom"][style*="right"] {
     opacity:0 !important;
     pointer-events:none !important;
 }
-/* Hide bottom right icons (globe & crown) */
 [data-testid="stActionButtonIcon"]          { display:none !important; }
 iframe[title="streamlit_cookies_manager"]   { display:none !important; }
 div[class*="badge"]                         { display:none !important; }
@@ -102,10 +101,48 @@ div[data-testid="stBottom"]                 { display:none !important; }
 #stDecoration                               { display:none !important; }
 .st-emotion-cache-1dp5vir                   { display:none !important; }
 .st-emotion-cache-h4xjcd                    { display:none !important; }
-/* Sembunyikan semua elemen fixed di pojok bawah */
-div[style*="bottom: 0"]                     { display:none !important; }
-div[style*="bottom:0"]                      { display:none !important; }
 </style>
+<script>
+function removeBadges() {
+    // Hapus semua elemen di pojok kanan bawah
+    const selectors = [
+        '[data-testid="stStatusWidget"]',
+        '[class*="viewerBadge"]',
+        '[class*="StatusWidget"]',
+        'a[href*="streamlit.io"]',
+        'a[href*="share.streamlit"]',
+        '.st-emotion-cache-1dp5vir',
+        '.st-emotion-cache-h4xjcd',
+    ];
+    selectors.forEach(sel => {
+        document.querySelectorAll(sel).forEach(el => {
+            el.style.display = 'none';
+            el.style.visibility = 'hidden';
+            el.style.opacity = '0';
+            el.style.pointerEvents = 'none';
+        });
+    });
+
+    // Hapus elemen fixed di pojok kanan bawah
+    document.querySelectorAll('*').forEach(el => {
+        const style = window.getComputedStyle(el);
+        if (
+            style.position === 'fixed' &&
+            (style.bottom === '0px' || parseInt(style.bottom) < 60) &&
+            (style.right === '0px' || parseInt(style.right) < 60)
+        ) {
+            const tag = el.tagName.toLowerCase();
+            if (tag !== 'body' && tag !== 'html') {
+                el.style.display = 'none';
+            }
+        }
+    });
+}
+
+// Jalankan sekarang dan setiap 1 detik
+removeBadges();
+setInterval(removeBadges, 1000);
+</script>
 """
 
 # ───────────────────────────────────────────────
