@@ -307,7 +307,7 @@ def show_auth_page():
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
         .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:200px; }}
-        .login-logo-img {{ width:250px; height:auto;}}
+        .login-logo-img {{ width:300px; height:auto;}}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
