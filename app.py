@@ -59,8 +59,13 @@ if not cookies.ready():
 #           SUPABASE CLIENT
 # ───────────────────────────────────────────────
 
-SUPABASE_URL = st.secrets["SUPABASE_URL"]
-SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+import os
+try:
+    SUPABASE_URL = st.secrets["SUPABASE_URL"]
+    SUPABASE_KEY = st.secrets["SUPABASE_KEY"]
+except Exception:
+    SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+    SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 # ───────────────────────────────────────────────
