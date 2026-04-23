@@ -337,7 +337,7 @@ def show_auth_page():
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
         .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
-        .login-logo-img {{ width:220px; max-width:100%; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-img {{ width:200px; height:auto; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
@@ -356,13 +356,13 @@ def show_auth_page():
         .stCheckbox label {{ font-size:1.1rem !important; }}
         @media (max-height: 800px) {{
             .login-logo-wrap {{ padding-top:150px; }}
-            .login-logo-img {{ width:200px !important; }}
+            .login-logo-img {{ width:180px !important; height:auto !important; }}
             .login-form-wrap {{ padding-top:40px; }}
             .login-title {{ font-size:1.7rem !important; }}
         }}
         @media (max-height: 700px) {{
             .login-logo-wrap {{ padding-top:90px; }}
-            .login-logo-img {{ width:180px !important; }}
+            .login-logo-img {{ width:160px !important; height:auto !important; }}
             .login-form-wrap {{ padding-top:20px; }}
             .login-title {{ font-size:1.4rem !important; }}
             .stButton > button {{ font-size:1rem !important; padding:10px !important; }}
@@ -373,7 +373,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form, col_right = st.columns([1.2, 2.5, 0.3])
+    col_logo, col_form, col_right = st.columns([1.0, 2.5, 0.5])
 
     try:
         import base64 as _b64
