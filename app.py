@@ -335,14 +335,14 @@ def show_auth_page():
         .main .block-container {{ padding-top:0 !important; margin-top:0 !important; }}
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
-        /* Logo turun pakai padding-top */
+        /* Logo di kiri */
         .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:320px; }}
         .login-logo-img {{ width:350px; height:auto; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
             text-shadow:2px 2px 6px rgba(0,0,0,0.9) !important; margin-bottom:0.8rem !important; line-height:1.3 !important;
-            text-align:center !important; width:100%; }}
+            text-align:center !important; width:100%; position:absolute; left:50%; transform:translateX(-50%); top:60px; }}
         /* Perbesar tab Login/Daftar/Lupa */
         .stTabs [data-baseweb="tab"] {{ font-size:1.15rem !important; font-weight:700 !important; padding:8px 18px !important; }}
         /* Perbesar label & input */
