@@ -6,12 +6,32 @@ import re
 import os
 import bcrypt
 import secrets
+import threading
+import requests
 from pathlib import Path
 from datetime import datetime, timedelta, timezone
 
 WIB = timezone(timedelta(hours=7))
 def now_wib() -> datetime:
     return datetime.now(WIB).replace(tzinfo=None)
+
+# ───────────────────────────────────────────────
+#           KEEP ALIVE - ANTI SLEEP
+# ───────────────────────────────────────────────
+def _keep_alive():
+    import time
+    url = "https://realisasibelanjajatim.streamlit.app/"
+    while True:
+        try:
+            requests.get(url, timeout=10)
+        except Exception:
+            pass
+        time.sleep(300)  # ping setiap 5 menit
+
+if "keep_alive_started" not in st.session_state:
+    st.session_state["keep_alive_started"] = True
+    _t = threading.Thread(target=_keep_alive, daemon=True)
+    _t.start()
 
 from PIL import Image
 from reportlab.lib.pagesizes import A4, landscape
