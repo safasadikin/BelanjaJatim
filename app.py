@@ -74,50 +74,80 @@ supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
 HIDE_BADGE_CSS = """
 <style>
-[data-testid="stStatusWidget"]              { display:none !important; }
-div[data-testid="stStatusWidget"]           { display:none !important; }
-[data-testid="stToolbar"]                   { display:none !important; }
-[data-testid="stDecoration"]                { display:none !important; }
-[data-testid="stToolbarActions"]            { display:none !important; }
-#MainMenu                                   { display:none !important; }
-footer                                      { display:none !important; }
-.stDeployButton                             { display:none !important; }
-[data-testid="stDeployButton"]              { display:none !important; }
-[class*="viewerBadge"]                      { display:none !important; }
-[class*="StatusWidget"]                     { display:none !important; }
-[class*="toolbarActions"]                   { display:none !important; }
-[class*="_profileContainer"]                { display:none !important; }
-[class*="_profilePreview"]                  { display:none !important; }
-button[title="View fullscreen"]             { display:none !important; }
-button[data-testid="StyledFullScreenButton"]{ display:none !important; }
-header[data-testid="stHeader"]              { background:transparent !important; border:none !important; }
-[data-testid="stHeader"] > *               { display:none !important; }
+[data-testid="stStatusWidget"]               { display:none !important; }
+div[data-testid="stStatusWidget"]            { display:none !important; }
+[data-testid="stToolbar"]                    { display:none !important; }
+[data-testid="stDecoration"]                 { display:none !important; }
+[data-testid="stToolbarActions"]             { display:none !important; }
+#MainMenu                                    { display:none !important; }
+footer                                       { display:none !important; }
+.stDeployButton                              { display:none !important; }
+[data-testid="stDeployButton"]               { display:none !important; }
+[class*="viewerBadge"]                       { display:none !important; }
+[class*="StatusWidget"]                      { display:none !important; }
+[class*="toolbarActions"]                    { display:none !important; }
+[class*="_profileContainer"]                 { display:none !important; }
+[class*="_profilePreview"]                   { display:none !important; }
+button[title="View fullscreen"]              { display:none !important; }
+button[data-testid="StyledFullScreenButton"] { display:none !important; }
+header[data-testid="stHeader"]               { background:transparent !important; border:none !important; }
+[data-testid="stHeader"] > *                { display:none !important; }
 div[style*="position: fixed"][style*="bottom"][style*="right"],
 div[style*="position:fixed"][style*="bottom"][style*="right"] {
     display:none !important;
     opacity:0 !important;
     pointer-events:none !important;
 }
-[data-testid="stActionButtonIcon"]          { display:none !important; }
-iframe[title="streamlit_cookies_manager"]   { display:none !important; }
-div[class*="badge"]                         { display:none !important; }
-a[href*="streamlit.io"]                     { display:none !important; }
-div[data-testid="stBottom"]                 { display:none !important; }
-#stDecoration                               { display:none !important; }
-.st-emotion-cache-1dp5vir                   { display:none !important; }
-.st-emotion-cache-h4xjcd                    { display:none !important; }
+[data-testid="stActionButtonIcon"]           { display:none !important; }
+iframe[title="streamlit_cookies_manager"]    { display:none !important; }
+div[class*="badge"]                          { display:none !important; }
+a[href*="streamlit.io"]                      { display:none !important; }
+div[data-testid="stBottom"]                  { display:none !important; }
+#stDecoration                                { display:none !important; }
+.st-emotion-cache-1dp5vir                    { display:none !important; }
+.st-emotion-cache-h4xjcd                     { display:none !important; }
+
+/* ── TAMBAHAN BARU ── */
+.st-emotion-cache-zq5wmm                    { display:none !important; }
+.st-emotion-cache-1wbqy5l                   { display:none !important; }
+.st-emotion-cache-13ejsyy                   { display:none !important; }
+.st-emotion-cache-1p1nwyz                   { display:none !important; }
+[data-testid="collapsedControl"]            { display:none !important; }
+section[data-testid="stSidebarCollapsedControl"] { display:none !important; }
+div[class*="viewerBadge_container"]         { display:none !important; }
+div[class*="badge_container"]               { display:none !important; }
+#badges                                     { display:none !important; }
+.viewerBadge_container__r5tak               { display:none !important; }
+span[class*="viewerBadge"]                  { display:none !important; }
+a[class*="viewerBadge"]                     { display:none !important; }
+img[class*="viewerBadge"]                   { display:none !important; }
+
+/* Sembunyikan semua elemen fixed di pojok bawah */
+div[style*="position: fixed"][style*="bottom"],
+div[style*="position:fixed"][style*="bottom"] {
+    display:none !important;
+    opacity:0 !important;
+    visibility:hidden !important;
+    pointer-events:none !important;
+}
 </style>
 <script>
 function removeBadges() {
-    // Hapus semua elemen di pojok kanan bawah
     const selectors = [
         '[data-testid="stStatusWidget"]',
         '[class*="viewerBadge"]',
         '[class*="StatusWidget"]',
+        '[class*="badge_container"]',
+        '[class*="viewerBadge_container"]',
         'a[href*="streamlit.io"]',
         'a[href*="share.streamlit"]',
         '.st-emotion-cache-1dp5vir',
         '.st-emotion-cache-h4xjcd',
+        '.st-emotion-cache-zq5wmm',
+        '.st-emotion-cache-1wbqy5l',
+        '.st-emotion-cache-13ejsyy',
+        '.st-emotion-cache-1p1nwyz',
+        '#badges',
     ];
     selectors.forEach(sel => {
         document.querySelectorAll(sel).forEach(el => {
@@ -128,25 +158,25 @@ function removeBadges() {
         });
     });
 
-    // Hapus elemen fixed di pojok kanan bawah
+    /* Hapus semua elemen fixed di pojok bawah */
     document.querySelectorAll('*').forEach(el => {
         const style = window.getComputedStyle(el);
-        if (
-            style.position === 'fixed' &&
-            (style.bottom === '0px' || parseInt(style.bottom) < 60) &&
-            (style.right === '0px' || parseInt(style.right) < 60)
-        ) {
+        if (style.position === 'fixed' && parseInt(style.bottom) < 80) {
             const tag = el.tagName.toLowerCase();
             if (tag !== 'body' && tag !== 'html') {
-                el.style.display = 'none';
+                const rect = el.getBoundingClientRect();
+                if (rect.width < 200 && rect.height < 100) {
+                    el.style.display = 'none';
+                    el.style.opacity = '0';
+                    el.style.visibility = 'hidden';
+                }
             }
         }
     });
 }
 
-// Jalankan sekarang dan setiap 1 detik
 removeBadges();
-setInterval(removeBadges, 1000);
+setInterval(removeBadges, 500);
 </script>
 """
 
