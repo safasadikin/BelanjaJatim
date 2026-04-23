@@ -93,6 +93,18 @@ div[style*="position:fixed"][style*="bottom"][style*="right"] {
     opacity:0 !important;
     pointer-events:none !important;
 }
+/* Hide bottom right icons (globe & crown) */
+[data-testid="stActionButtonIcon"]          { display:none !important; }
+iframe[title="streamlit_cookies_manager"]   { display:none !important; }
+div[class*="badge"]                         { display:none !important; }
+a[href*="streamlit.io"]                     { display:none !important; }
+div[data-testid="stBottom"]                 { display:none !important; }
+#stDecoration                               { display:none !important; }
+.st-emotion-cache-1dp5vir                   { display:none !important; }
+.st-emotion-cache-h4xjcd                    { display:none !important; }
+/* Sembunyikan semua elemen fixed di pojok bawah */
+div[style*="bottom: 0"]                     { display:none !important; }
+div[style*="bottom:0"]                      { display:none !important; }
 </style>
 """
 
