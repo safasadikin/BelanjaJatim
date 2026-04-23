@@ -343,7 +343,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form, col_right = st.columns([1.2, 2.5, 0.8])
+    col_logo, col_form, col_right = st.columns([0.5, 2.5, 0.8])
 
     try:
         import base64 as _b64
