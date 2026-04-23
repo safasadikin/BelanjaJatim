@@ -336,8 +336,8 @@ def show_auth_page():
         .stTextInput input {{ background:rgba(255,255,255,0.92) !important; font-weight:600 !important; color:#111 !important; border:1.5px solid #ccc !important; font-size:1rem !important; padding:10px 14px !important; }}
         .stTabs [data-baseweb="tab"] {{ font-weight:700 !important; font-size:1rem !important; }}
         /* Logo turun pakai padding-top */
-        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:210px; }}
-        .login-logo-img {{ width:200px; height:auto; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
+        .login-logo-wrap {{ display:flex; align-items:center; justify-content:center; padding-top:180px; }}
+        .login-logo-img {{ width:280px; height:auto; pointer-events:none; filter:drop-shadow(0 4px 20px rgba(0,0,0,0.5)); }}
         /* Form wrapper */
         .login-form-wrap {{ padding-top:60px; }}
         .login-title {{ font-size:2.1rem !important; font-weight:900 !important; color:white !important;
@@ -373,7 +373,7 @@ def show_auth_page():
         pass
 
     # Layout 2 kolom pakai st.columns: logo kiri, form kanan
-    col_logo, col_form, col_right = st.columns([1.0, 2.5, 0.5])
+    col_logo, col_form, col_right = st.columns([1.5, 2.5, 0.2])
 
     try:
         import base64 as _b64
